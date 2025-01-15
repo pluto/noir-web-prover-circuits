@@ -25,7 +25,7 @@ impl LineStatus {
 }
 
 struct Parser {
-    parsing_start: u8,
+    parsing_start: Field,
     parsing_header: Field,
     parsing_header_name: bool,
     parsing_header_value: bool,
@@ -63,7 +63,7 @@ impl Parser {
             }
 
             // Handle start line
-            if (state.parsing_start > 0) & (character == SPACE) {
+            if (state.parsing_start != 0) & (character == SPACE) {
                 state.parsing_start += 1;
             }
 
