@@ -32,14 +32,14 @@ pub fn num_constraints<F: Field + PrimeField>(bytes: &[u8]) -> usize {
     let circuit: Circuit<GenericFieldElement<F>> = program.bytecode.functions[0].clone();
 
     let mut acvm = ACVM::new(
-        &StubbedBlackBoxSolver(false),
+        &StubbedBlackBoxSolver(true),
         &circuit.opcodes,
         WitnessMap::new(),
         &[],
         &[],
     );
 
-    let _ = acvm.solve();
+    let _status = dbg!(acvm.solve());
     let witness_map = acvm.finalize();
 
     // Get gates and vars and shit
@@ -76,11 +76,7 @@ pub fn num_constraints<F: Field + PrimeField>(bytes: &[u8]) -> usize {
 
     // First create all of the witness indices by adding the values into the constraint system
     for (i, val) in values.iter() {
-        let var = if public_inputs.contains(i.0.try_into().unwrap()) {
-            cs.new_witness_variable(|| Ok(*val)).unwrap()
-        } else {
-            cs.new_witness_variable(|| Ok(*val)).unwrap()
-        };
+        let var = cs.new_witness_variable(|| Ok(*val)).unwrap();
         variables.push(var);
     }
 
