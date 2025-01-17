@@ -15,7 +15,7 @@ use std::collections::HashMap;
 
 use super::*;
 use crate::bridge::AcirCircuitSonobe;
-use crate::utils::VecFpVar;
+
 use folding_schemes::Error; // TODO: remove this crate entirely
 
 #[derive(Clone, Debug)]
@@ -69,8 +69,8 @@ impl<const PUBLIC_IO_LENGTH: usize, const PRIVATE_INPUT_LENGTH: usize>
     pub fn generate_step_constraints(
         &self,
         cs: ConstraintSystemRef<Fr>,
-        z_i: VecFpVar<Fr, PUBLIC_IO_LENGTH>,
-        external_inputs: VecFpVar<Fr, PRIVATE_INPUT_LENGTH>, // inputs that are not part of the state
+        z_i: [FpVar<Fr>; PUBLIC_IO_LENGTH],
+        external_inputs: [FpVar<Fr>; PRIVATE_INPUT_LENGTH],
     ) -> Result<Vec<FpVar<Fr>>, SynthesisError> {
         let mut acvm = ACVM::new(
             &bn254_blackbox_solver::Bn254BlackBoxSolver(false),
@@ -85,8 +85,8 @@ impl<const PUBLIC_IO_LENGTH: usize, const PRIVATE_INPUT_LENGTH: usize>
         self.circuit.public_parameters.0.iter().for_each(|witness| {
             let idx: usize = witness.as_usize();
             let witness = AcvmWitness(witness.witness_index());
-            already_assigned_witness_values.insert(witness, &z_i.0[idx]);
-            let val = z_i.0[idx].value().unwrap();
+            already_assigned_witness_values.insert(witness, &z_i[idx]);
+            let val = z_i[idx].value().unwrap();
 
             let f = GenericFieldElement::<Fr>::from_repr(val);
             acvm.overwrite_witness(witness, f);
@@ -94,11 +94,11 @@ impl<const PUBLIC_IO_LENGTH: usize, const PRIVATE_INPUT_LENGTH: usize>
 
         // write witness values for external_inputs
         self.circuit.private_parameters.iter().for_each(|witness| {
-            let idx = witness.as_usize() - z_i.0.len();
+            let idx = witness.as_usize() - z_i.len();
             let witness = AcvmWitness(witness.witness_index());
-            already_assigned_witness_values.insert(witness, &external_inputs.0[idx]);
+            already_assigned_witness_values.insert(witness, &external_inputs[idx]);
 
-            let val = external_inputs.0[idx].value().unwrap();
+            let val = external_inputs[idx].value().unwrap();
 
             let f = GenericFieldElement::<Fr>::from_repr(val);
             acvm.overwrite_witness(witness, f);
@@ -150,7 +150,6 @@ mod tests {
     use std::env;
 
     use crate::noir::NoirFCircuit;
-    use crate::utils::VecFpVar;
 
     /// Native implementation of `src/noir/test_folder/test_circuit`
     fn external_inputs_step_native<F: PrimeField>(z_i: Vec<F>, external_inputs: Vec<F>) -> Vec<F> {
