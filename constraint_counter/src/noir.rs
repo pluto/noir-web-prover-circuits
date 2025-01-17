@@ -1,7 +1,7 @@
 use acvm::{
     acir::{
         acir_field::GenericFieldElement,
-        circuit::{Circuit, Program},
+        circuit::{brillig::BrilligBytecode, Circuit, Program},
         native_types::{Witness as AcvmWitness, WitnessMap},
     },
     blackbox_solver::StubbedBlackBoxSolver,
@@ -12,9 +12,11 @@ use ark_r1cs_std::{alloc::AllocVar, fields::fp::FpVar, R1CSVar};
 use ark_relations::r1cs::{
     ConstraintSynthesizer, ConstraintSystem, ConstraintSystemRef, SynthesisError,
 };
+
 use serde::{self, Deserialize, Serialize};
 use std::collections::HashMap;
 
+use super::*;
 use crate::bridge::AcirCircuitSonobe;
 use crate::utils::{VecF, VecFpVar};
 use folding_schemes::{frontend::FCircuit, utils::PathOrBin, Error};
@@ -23,6 +25,7 @@ use folding_schemes::{frontend::FCircuit, utils::PathOrBin, Error};
 pub struct NoirFCircuit<F: PrimeField, const L: usize> {
     pub circuit: Circuit<GenericFieldElement<F>>,
     pub state_len: usize,
+    pub unconstrained_functions: Vec<BrilligBytecode<GenericFieldElement<F>>>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -34,10 +37,10 @@ pub struct ProgramArtifactGeneric<F: PrimeField> {
     pub bytecode: Program<GenericFieldElement<F>>,
 }
 
-impl<F: PrimeField, const L: usize> FCircuit<F> for NoirFCircuit<F, L> {
+impl<const L: usize> FCircuit<Fr> for NoirFCircuit<Fr, L> {
     type Params = (PathOrBin, usize);
-    type ExternalInputs = VecF<F, L>;
-    type ExternalInputsVar = VecFpVar<F, L>;
+    type ExternalInputs = VecF<Fr, L>;
+    type ExternalInputsVar = VecFpVar<Fr, L>;
 
     fn new(params: Self::Params) -> Result<Self, Error> {
         let (source, state_len) = params;
@@ -48,9 +51,9 @@ impl<F: PrimeField, const L: usize> FCircuit<F> for NoirFCircuit<F, L> {
             }
             PathOrBin::Bin(bin) => bin,
         };
-        let program: ProgramArtifactGeneric<F> = serde_json::from_slice(&input_string)
+        let program: ProgramArtifactGeneric<Fr> = serde_json::from_slice(&input_string)
             .map_err(|err| Error::JSONSerdeError(err.to_string()))?;
-        let circuit: Circuit<GenericFieldElement<F>> = program.bytecode.functions[0].clone();
+        let circuit: Circuit<GenericFieldElement<Fr>> = program.bytecode.functions[0].clone();
         let ivc_input_length = circuit.public_parameters.0.len();
         let ivc_return_length = circuit.return_values.0.len();
 
@@ -63,7 +66,11 @@ impl<F: PrimeField, const L: usize> FCircuit<F> for NoirFCircuit<F, L> {
             ));
         }
 
-        Ok(NoirFCircuit { circuit, state_len })
+        Ok(NoirFCircuit {
+            circuit,
+            state_len,
+            unconstrained_functions: program.bytecode.unconstrained_functions,
+        })
     }
 
     fn state_len(&self) -> usize {
@@ -72,16 +79,16 @@ impl<F: PrimeField, const L: usize> FCircuit<F> for NoirFCircuit<F, L> {
 
     fn generate_step_constraints(
         &self,
-        cs: ConstraintSystemRef<F>,
+        cs: ConstraintSystemRef<Fr>,
         _i: usize,
-        z_i: Vec<FpVar<F>>,
+        z_i: Vec<FpVar<Fr>>,
         external_inputs: Self::ExternalInputsVar, // inputs that are not part of the state
-    ) -> Result<Vec<FpVar<F>>, SynthesisError> {
+    ) -> Result<Vec<FpVar<Fr>>, SynthesisError> {
         let mut acvm = ACVM::new(
-            &StubbedBlackBoxSolver(false),
+            &bn254_blackbox_solver::Bn254BlackBoxSolver(true),
             &self.circuit.opcodes,
             WitnessMap::new(),
-            &[],
+            &self.unconstrained_functions,
             &[],
         );
 
@@ -96,13 +103,13 @@ impl<F: PrimeField, const L: usize> FCircuit<F> for NoirFCircuit<F, L> {
                 let witness = AcvmWitness(witness.witness_index());
                 already_assigned_witness_values.insert(witness, &z_i[idx]);
                 let val = z_i[idx].value()?;
-                let value = if val == F::zero() {
+                let value = if val == Fr::ZERO {
                     "0".to_string()
                 } else {
                     val.to_string()
                 };
 
-                let f = GenericFieldElement::<F>::try_from_str(&value)
+                let f = GenericFieldElement::<Fr>::try_from_str(&value)
                     .ok_or(SynthesisError::Unsatisfiable)?;
                 acvm.overwrite_witness(witness, f);
                 Ok(())
@@ -119,13 +126,13 @@ impl<F: PrimeField, const L: usize> FCircuit<F> for NoirFCircuit<F, L> {
                 already_assigned_witness_values.insert(witness, &external_inputs.0[idx]);
 
                 let val = external_inputs.0[idx].value()?;
-                let value = if val == F::zero() {
+                let value = if val == Fr::ZERO {
                     "0".to_string()
                 } else {
                     val.to_string()
                 };
 
-                let f = GenericFieldElement::<F>::try_from_str(&value)
+                let f = GenericFieldElement::<Fr>::try_from_str(&value)
                     .ok_or(SynthesisError::Unsatisfiable)?;
                 acvm.overwrite_witness(witness, f);
                 Ok(())
@@ -146,14 +153,14 @@ impl<F: PrimeField, const L: usize> FCircuit<F> for NoirFCircuit<F, L> {
                 let noir_field_element = witness_map
                     .get(witness)
                     .ok_or(SynthesisError::AssignmentMissing)?;
-                FpVar::<F>::new_witness(cs.clone(), || Ok(noir_field_element.into_repr()))
+                FpVar::<Fr>::new_witness(cs.clone(), || Ok(noir_field_element.into_repr()))
             })
-            .collect::<Result<Vec<FpVar<F>>, SynthesisError>>()?;
+            .collect::<Result<Vec<FpVar<Fr>>, SynthesisError>>()?;
 
         // initialize circuit and set already assigned values
         let mut acir_circuit = AcirCircuitSonobe::from((&self.circuit, witness_map));
         acir_circuit.already_assigned_witnesses = already_assigned_witness_values;
-        acir_circuit.generate_constraints(cs.clone())?;
+        acir_circuit.generate_constraints(cs)?;
 
         Ok(assigned_z_i1)
     }

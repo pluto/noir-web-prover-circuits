@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "acir"
 version = "1.0.0-beta.1"
-source = "git+https://github.com/noir-lang/noir#82cb9007b89c1a3520c85d3134916a29127226db"
+source = "git+https://github.com/noir-lang/noir#7705a624842d1e1f716506b005ca65e397ff7a9f"
 dependencies = [
  "acir_field",
  "base64",
@@ -22,7 +22,7 @@ dependencies = [
 [[package]]
 name = "acir_field"
 version = "1.0.0-beta.1"
-source = "git+https://github.com/noir-lang/noir#82cb9007b89c1a3520c85d3134916a29127226db"
+source = "git+https://github.com/noir-lang/noir#7705a624842d1e1f716506b005ca65e397ff7a9f"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -35,7 +35,7 @@ dependencies = [
 [[package]]
 name = "acvm"
 version = "1.0.0-beta.1"
-source = "git+https://github.com/noir-lang/noir#82cb9007b89c1a3520c85d3134916a29127226db"
+source = "git+https://github.com/noir-lang/noir#7705a624842d1e1f716506b005ca65e397ff7a9f"
 dependencies = [
  "acir",
  "acvm_blackbox_solver",
@@ -50,7 +50,7 @@ dependencies = [
 [[package]]
 name = "acvm_blackbox_solver"
 version = "1.0.0-beta.1"
-source = "git+https://github.com/noir-lang/noir#82cb9007b89c1a3520c85d3134916a29127226db"
+source = "git+https://github.com/noir-lang/noir#7705a624842d1e1f716506b005ca65e397ff7a9f"
 dependencies = [
  "acir",
  "blake2",
@@ -424,9 +424,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "bn254_blackbox_solver"
+version = "1.0.0-beta.1"
+source = "git+https://github.com/noir-lang/noir#7705a624842d1e1f716506b005ca65e397ff7a9f"
+dependencies = [
+ "acir",
+ "acvm_blackbox_solver",
+ "ark-bn254",
+ "ark-ec",
+ "ark-ff",
+ "ark-grumpkin",
+ "hex",
+ "lazy_static",
+ "num-bigint",
+]
+
+[[package]]
 name = "brillig"
 version = "1.0.0-beta.1"
-source = "git+https://github.com/noir-lang/noir#82cb9007b89c1a3520c85d3134916a29127226db"
+source = "git+https://github.com/noir-lang/noir#7705a624842d1e1f716506b005ca65e397ff7a9f"
 dependencies = [
  "acir_field",
  "serde",
@@ -435,7 +451,7 @@ dependencies = [
 [[package]]
 name = "brillig_vm"
 version = "1.0.0-beta.1"
-source = "git+https://github.com/noir-lang/noir#82cb9007b89c1a3520c85d3134916a29127226db"
+source = "git+https://github.com/noir-lang/noir#7705a624842d1e1f716506b005ca65e397ff7a9f"
 dependencies = [
  "acir",
  "acvm_blackbox_solver",
@@ -494,6 +510,7 @@ dependencies = [
  "ark-relations",
  "ark-serialize",
  "ark-std",
+ "bn254_blackbox_solver",
  "folding-schemes",
  "num-bigint",
  "serde",
@@ -863,6 +880,12 @@ checksum = "ecc2af9a1119c51f12a14607e783cb977bde58bc069ff0c3da1095e635d70654"
 dependencies = [
  "cpufeatures",
 ]
+
+[[package]]
+name = "lazy_static"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libaes"
