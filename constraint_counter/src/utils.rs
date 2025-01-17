@@ -8,14 +8,15 @@ use ark_std::fmt::Debug;
 use core::borrow::Borrow;
 
 #[derive(Clone, Debug)]
-pub struct VecF<F: PrimeField, const L: usize>(pub Vec<F>);
+pub struct VecF<F: PrimeField, const L: usize>(pub [F; L]);
 impl<F: PrimeField, const L: usize> Default for VecF<F, L> {
     fn default() -> Self {
-        VecF(vec![F::zero(); L])
+        Self([F::zero(); L])
     }
 }
 #[derive(Clone, Debug)]
 pub struct VecFpVar<F: PrimeField, const L: usize>(pub Vec<FpVar<F>>);
+
 impl<F: PrimeField, const L: usize> AllocVar<VecF<F, L>, F> for VecFpVar<F, L> {
     fn new_variable<T: Borrow<VecF<F, L>>>(
         cs: impl Into<Namespace<F>>,
@@ -25,7 +26,7 @@ impl<F: PrimeField, const L: usize> AllocVar<VecF<F, L>, F> for VecFpVar<F, L> {
         f().and_then(|val| {
             let cs = cs.into();
 
-            let v = Vec::<FpVar<F>>::new_variable(cs.clone(), || Ok(val.borrow().0.clone()), mode)?;
+            let v = Vec::<FpVar<F>>::new_variable(cs, || Ok(val.borrow().0), mode)?;
 
             Ok(VecFpVar(v))
         })

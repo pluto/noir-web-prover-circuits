@@ -78,7 +78,7 @@ pub fn parse<let N: u32>(data: str<N>) {
         // println(parser);
     }
     // Assert HTTP was valid
-    assert(parser.parsing_start == 0);
+    assert(parser.parsing_start == 1);
     // assert(parser.parsing_header == 0);
     // assert(!parser.parsing_header_name);
     // assert(!parser.parsing_header_value);
