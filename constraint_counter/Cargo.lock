@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "acir"
 version = "1.0.0-beta.1"
-source = "git+https://github.com/noir-lang/noir#f2a6d1038ecb922367ffb7280c4b0781043ade02"
+source = "git+https://github.com/winderica/noir?branch=arkworks-next#fc9e995c1639bb5df25dc047d45df92978e85f55"
 dependencies = [
  "acir_field",
  "base64",
@@ -22,7 +22,7 @@ dependencies = [
 [[package]]
 name = "acir_field"
 version = "1.0.0-beta.1"
-source = "git+https://github.com/noir-lang/noir#f2a6d1038ecb922367ffb7280c4b0781043ade02"
+source = "git+https://github.com/winderica/noir?branch=arkworks-next#fc9e995c1639bb5df25dc047d45df92978e85f55"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -35,7 +35,7 @@ dependencies = [
 [[package]]
 name = "acvm"
 version = "1.0.0-beta.1"
-source = "git+https://github.com/noir-lang/noir#f2a6d1038ecb922367ffb7280c4b0781043ade02"
+source = "git+https://github.com/winderica/noir?branch=arkworks-next#fc9e995c1639bb5df25dc047d45df92978e85f55"
 dependencies = [
  "acir",
  "acvm_blackbox_solver",
@@ -50,7 +50,7 @@ dependencies = [
 [[package]]
 name = "acvm_blackbox_solver"
 version = "1.0.0-beta.1"
-source = "git+https://github.com/noir-lang/noir#f2a6d1038ecb922367ffb7280c4b0781043ade02"
+source = "git+https://github.com/winderica/noir?branch=arkworks-next#fc9e995c1639bb5df25dc047d45df92978e85f55"
 dependencies = [
  "acir",
  "blake2",
@@ -323,7 +323,7 @@ dependencies = [
 [[package]]
 name = "brillig"
 version = "1.0.0-beta.1"
-source = "git+https://github.com/noir-lang/noir#f2a6d1038ecb922367ffb7280c4b0781043ade02"
+source = "git+https://github.com/winderica/noir?branch=arkworks-next#fc9e995c1639bb5df25dc047d45df92978e85f55"
 dependencies = [
  "acir_field",
  "serde",
@@ -332,7 +332,7 @@ dependencies = [
 [[package]]
 name = "brillig_vm"
 version = "1.0.0-beta.1"
-source = "git+https://github.com/noir-lang/noir#f2a6d1038ecb922367ffb7280c4b0781043ade02"
+source = "git+https://github.com/winderica/noir?branch=arkworks-next#fc9e995c1639bb5df25dc047d45df92978e85f55"
 dependencies = [
  "acir",
  "acvm_blackbox_solver",

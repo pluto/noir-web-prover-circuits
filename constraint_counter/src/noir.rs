@@ -32,7 +32,7 @@ pub fn num_constraints<F: Field + PrimeField>(bytes: &[u8]) -> usize {
     let circuit: Circuit<GenericFieldElement<F>> = program.bytecode.functions[0].clone();
 
     let mut acvm = ACVM::new(
-        &StubbedBlackBoxSolver(true),
+        &StubbedBlackBoxSolver,
         &circuit.opcodes,
         WitnessMap::new(),
         &[],
