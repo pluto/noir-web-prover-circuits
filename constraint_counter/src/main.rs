@@ -32,5 +32,5 @@ pub fn main() {
         .generate_step_constraints(cs.clone(), 0, z_i, VecFpVar(external_inputs))
         .unwrap();
 
-    // dbg!(cs.num_constraints());
+    dbg!(cs.num_constraints());
 }

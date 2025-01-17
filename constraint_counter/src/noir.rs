@@ -109,7 +109,6 @@ impl<F: PrimeField, const L: usize> FCircuit<F> for NoirFCircuit<F, L> {
             })
             .collect::<Result<Vec<()>, SynthesisError>>()?;
 
-        println!("before private parameters");
         // write witness values for external_inputs
         self.circuit
             .private_parameters
@@ -133,13 +132,11 @@ impl<F: PrimeField, const L: usize> FCircuit<F> for NoirFCircuit<F, L> {
             })
             .collect::<Result<Vec<()>, SynthesisError>>()?;
 
-        println!("after private parameters");
         // computes the witness
         let _ = acvm.solve();
         let witness_map = acvm.finalize();
 
         // get the z_{i+1} output state
-        println!("before the output state");
         let assigned_z_i1 = self
             .circuit
             .return_values
@@ -156,11 +153,7 @@ impl<F: PrimeField, const L: usize> FCircuit<F> for NoirFCircuit<F, L> {
         // initialize circuit and set already assigned values
         let mut acir_circuit = AcirCircuitSonobe::from((&self.circuit, witness_map));
         acir_circuit.already_assigned_witnesses = already_assigned_witness_values;
-        println!("before gen constraints");
         acir_circuit.generate_constraints(cs.clone())?;
-
-        println!("wtf");
-        dbg!(cs.num_constraints());
 
         Ok(assigned_z_i1)
     }
