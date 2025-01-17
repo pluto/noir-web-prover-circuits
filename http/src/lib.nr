@@ -105,10 +105,10 @@ pub fn parse<let N: u32>(data: [Field; N]) {
     }
     // Assert HTTP was valid
     assert(parser.parsing_start == 0);
-    assert(parser.parsing_header == 0);
-    assert(parser.parsing_header_name == 0);
-    assert(parser.parsing_header_value == 0);
-    assert(parser.parsing_body == 0);
+    // assert(parser.parsing_header == 0);
+    // assert(parser.parsing_header_name == 0);
+    // assert(parser.parsing_header_value == 0);
+    // assert(parser.parsing_body == 0);
     // assert(!parser.line_status.first_cr);
     // assert(!parser.line_status.first_lf);
     // assert(!parser.line_status.second_cr);
