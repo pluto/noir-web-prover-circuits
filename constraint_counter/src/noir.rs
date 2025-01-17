@@ -69,7 +69,7 @@ impl<const PUBLIC_IO_LENGTH: usize, const PRIVATE_INPUT_LENGTH: usize>
     pub fn generate_step_constraints(
         &self,
         cs: ConstraintSystemRef<Fr>,
-        z_i: Vec<FpVar<Fr>>,
+        z_i: VecFpVar<Fr, PUBLIC_IO_LENGTH>,
         external_inputs: VecFpVar<Fr, PRIVATE_INPUT_LENGTH>, // inputs that are not part of the state
     ) -> Result<Vec<FpVar<Fr>>, SynthesisError> {
         let mut acvm = ACVM::new(
@@ -82,38 +82,27 @@ impl<const PUBLIC_IO_LENGTH: usize, const PRIVATE_INPUT_LENGTH: usize>
 
         let mut already_assigned_witness_values = HashMap::new();
 
-        self.circuit
-            .public_parameters
-            .0
-            .iter()
-            .map(|witness| {
-                let idx: usize = witness.as_usize();
-                let witness = AcvmWitness(witness.witness_index());
-                already_assigned_witness_values.insert(witness, &z_i[idx]);
-                let val = z_i[idx].value()?;
+        self.circuit.public_parameters.0.iter().for_each(|witness| {
+            let idx: usize = witness.as_usize();
+            let witness = AcvmWitness(witness.witness_index());
+            already_assigned_witness_values.insert(witness, &z_i.0[idx]);
+            let val = z_i.0[idx].value().unwrap();
 
-                let f = GenericFieldElement::<Fr>::from_repr(val);
-                acvm.overwrite_witness(witness, f);
-                Ok(())
-            })
-            .collect::<Result<Vec<()>, SynthesisError>>()?;
+            let f = GenericFieldElement::<Fr>::from_repr(val);
+            acvm.overwrite_witness(witness, f);
+        });
 
         // write witness values for external_inputs
-        self.circuit
-            .private_parameters
-            .iter()
-            .map(|witness| {
-                let idx = witness.as_usize() - z_i.len();
-                let witness = AcvmWitness(witness.witness_index());
-                already_assigned_witness_values.insert(witness, &external_inputs.0[idx]);
+        self.circuit.private_parameters.iter().for_each(|witness| {
+            let idx = witness.as_usize() - z_i.0.len();
+            let witness = AcvmWitness(witness.witness_index());
+            already_assigned_witness_values.insert(witness, &external_inputs.0[idx]);
 
-                let val = external_inputs.0[idx].value()?;
+            let val = external_inputs.0[idx].value().unwrap();
 
-                let f = GenericFieldElement::<Fr>::from_repr(val);
-                acvm.overwrite_witness(witness, f);
-                Ok(())
-            })
-            .collect::<Result<Vec<()>, SynthesisError>>()?;
+            let f = GenericFieldElement::<Fr>::from_repr(val);
+            acvm.overwrite_witness(witness, f);
+        });
 
         // computes the witness
         let start = std::time::Instant::now();
