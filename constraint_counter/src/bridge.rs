@@ -50,7 +50,7 @@ impl<'a, ConstraintF: Field + PrimeField> ConstraintSynthesizer<ConstraintF>
         let mut variables = Vec::with_capacity(self.values.len());
 
         // First create all of the witness indices by adding the values into the constraint system
-        for (i, val) in self.values.iter() {
+        for (i, val) in &self.values {
             let var = if self.already_assigned_witnesses.contains_key(i) {
                 let var = self.already_assigned_witnesses.get(i).unwrap();
                 if let FpVar::Var(allocated) = var {
@@ -58,8 +58,6 @@ impl<'a, ConstraintF: Field + PrimeField> ConstraintSynthesizer<ConstraintF>
                 } else {
                     return Err(SynthesisError::Unsatisfiable);
                 }
-            } else if self.public_inputs.contains(i.0.try_into().unwrap()) {
-                cs.new_witness_variable(|| Ok(*val))?
             } else {
                 cs.new_witness_variable(|| Ok(*val))?
             };

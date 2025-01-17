@@ -103,14 +103,8 @@ impl<const L: usize> FCircuit<Fr> for NoirFCircuit<Fr, L> {
                 let witness = AcvmWitness(witness.witness_index());
                 already_assigned_witness_values.insert(witness, &z_i[idx]);
                 let val = z_i[idx].value()?;
-                let value = if val == Fr::ZERO {
-                    "0".to_string()
-                } else {
-                    val.to_string()
-                };
 
-                let f = GenericFieldElement::<Fr>::try_from_str(&value)
-                    .ok_or(SynthesisError::Unsatisfiable)?;
+                let f = GenericFieldElement::<Fr>::from_repr(val);
                 acvm.overwrite_witness(witness, f);
                 Ok(())
             })
@@ -126,21 +120,15 @@ impl<const L: usize> FCircuit<Fr> for NoirFCircuit<Fr, L> {
                 already_assigned_witness_values.insert(witness, &external_inputs.0[idx]);
 
                 let val = external_inputs.0[idx].value()?;
-                let value = if val == Fr::ZERO {
-                    "0".to_string()
-                } else {
-                    val.to_string()
-                };
 
-                let f = GenericFieldElement::<Fr>::try_from_str(&value)
-                    .ok_or(SynthesisError::Unsatisfiable)?;
+                let f = GenericFieldElement::<Fr>::from_repr(val);
                 acvm.overwrite_witness(witness, f);
                 Ok(())
             })
             .collect::<Result<Vec<()>, SynthesisError>>()?;
 
         // computes the witness
-        let _ = acvm.solve();
+        let _status = dbg!(acvm.solve());
         let witness_map = acvm.finalize();
 
         // get the z_{i+1} output state

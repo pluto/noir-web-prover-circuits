@@ -8,34 +8,13 @@ comptime global SPACE: u8 = " ".as_bytes()[0];
 // comptime global COLON: Field = 58;
 // comptime global SPACE: Field = 32;
 
-struct LineStatus {
-    first_cr: bool,
-    first_lf: bool,
-    second_cr: bool,
-    second_lf: bool,
-}
-
-impl LineStatus {
-    fn default() -> Self {
-        Self { first_cr: false, first_lf: false, second_cr: false, second_lf: false }
-    }
-
-    fn is_single_line_break(self) -> bool {
-        self.first_cr & self.first_lf & !self.second_cr & !self.second_lf
-    }
-
-    fn is_double_line_break(self) -> bool {
-        self.first_cr & self.first_lf & self.second_cr & self.second_lf
-    }
-}
-
 struct Parser {
     parsing_start: Field,
     parsing_header: Field,
     parsing_header_name: bool,
     parsing_header_value: bool,
     parsing_body: bool,
-    line_status: LineStatus,
+    line_status: Field,
 }
 
 impl Parser {
@@ -46,7 +25,7 @@ impl Parser {
             parsing_header_name: false,
             parsing_header_value: false,
             parsing_body: false,
-            line_status: LineStatus::default(),
+            line_status: 0,
         }
     }
 
@@ -56,15 +35,17 @@ impl Parser {
         if !state.parsing_body {
             // TODO: note, this does not check the state of `parsing_header_name` and `parsing_header_value` are valid
             // Handle the line breaking
-            if state.line_status.is_single_line_break() & (character != CARRIAGE_RETURN) {
+            if (self.line_status == 2) & (character != CARRIAGE_RETURN) {
                 state.parsing_header += 1;
                 state.parsing_header_name = true;
                 state.parsing_start = 0;
+                state.line_status = 0;
             }
-            if state.line_status.is_double_line_break() {
+            if state.line_status == 4 {
                 state.parsing_header = 0; // TODO: this is a little bit unintuitive, but we'll start counting headers at 1?
                 state.parsing_header_value = false;
                 state.parsing_body = true;
+                state.line_status = 0;
             }
             // Handle start line
             if (state.parsing_start != 0) & (character == SPACE) {
@@ -76,24 +57,13 @@ impl Parser {
                 state.parsing_header_value = true;
             }
             // Check for return characters
-            if (character == CARRIAGE_RETURN) & !self.line_status.first_cr {
-                state.line_status.first_cr = true;
+            if (character == CARRIAGE_RETURN) & (self.line_status == 0) | (self.line_status == 2) {
+                state.line_status += 1;
                 state.parsing_header_value = false;
-            } else if (character == LINE_FEED)
-                & self.line_status.first_cr
-                & !self.line_status.second_cr {
-                state.line_status.first_lf = true;
-            } else if (character == CARRIAGE_RETURN)
-                & self.line_status.first_cr
-                & self.line_status.first_lf {
-                state.line_status.second_cr = true;
-            } else if (character == LINE_FEED)
-                & self.line_status.first_cr
-                & self.line_status.first_lf
-                & self.line_status.second_cr {
-                state.line_status.second_lf = true;
+            } else if (character == LINE_FEED) & (self.line_status == 1) | (self.line_status == 3) {
+                state.line_status += 1;
             } else {
-                state.line_status = LineStatus::default();
+                state.line_status = 0;
             }
         }
         state
@@ -104,18 +74,16 @@ pub fn parse<let N: u32>(data: str<N>) {
     let mut parser = Parser::default();
     for character in data.as_bytes() {
         parser = parser.update_state(character);
+        // println(character);
         // println(parser);
     }
     // Assert HTTP was valid
-    // assert(parser.parsing_start == 0);
+    assert(parser.parsing_start == 0);
     // assert(parser.parsing_header == 0);
-    // assert(parser.parsing_header_name == 0);
-    // assert(parser.parsing_header_value == 0);
-    // assert(parser.parsing_body == 0);
-    // assert(!parser.line_status.first_cr);
-    // assert(!parser.line_status.first_lf);
-    // assert(!parser.line_status.second_cr);
-    // assert(!parser.line_status.second_lf);
+    // assert(!parser.parsing_header_name);
+    // assert(!parser.parsing_header_value);
+    // assert(parser.parsing_body);
+    // assert(parser.line_status == 0);
 }
 
 mod tests {
@@ -123,8 +91,8 @@ mod tests {
 
     global data: str<89> = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 19\r\n\r\n{\"success\":\"true\"}";
 
-    // #[test]
-    // fn test_parse() {
-    //     parse(data);
-    // }
+    #[test]
+    fn test_parse() {
+        parse(data);
+    }
 }

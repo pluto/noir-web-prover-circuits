@@ -21,6 +21,9 @@ pub fn main() {
     // circuit.generate_constraints(vec![], VecFpVar::default());
 
     let cs = ConstraintSystem::<Fr>::new_ref();
+    // cs.set_mode(ark_relations::r1cs::SynthesisMode::Setup);
+
+    // .set_optimization_goal(ark_relations::r1cs::OptimizationGoal::Constraints);
 
     let pub_inputs = vec![Fr::ZERO];
     let z_i = Vec::<FpVar<Fr>>::new_witness(cs.clone(), || Ok(pub_inputs.clone())).unwrap();
@@ -31,6 +34,9 @@ pub fn main() {
     circuit
         .generate_step_constraints(cs.clone(), 0, z_i, VecFpVar(external_inputs))
         .unwrap();
+
+    cs.finalize();
+    // let matrices = cs.to_matrices().unwrap();
 
     dbg!(cs.num_constraints());
 }
