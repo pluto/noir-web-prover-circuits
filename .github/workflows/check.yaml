@@ -44,8 +44,11 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+
       - name: Install Taplo
-        run: cargo install taplo-cli
+        run: cargo binstall --no-confirm taplo-cli
 
       - name: Check TOML formatting
         run: taplo fmt --check
