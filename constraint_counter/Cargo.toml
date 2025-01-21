@@ -1,37 +1,37 @@
 [package]
-name = "constraint_counter"
-version = "0.1.0"
 edition = "2021"
+name    = "constraint_counter"
+version = "0.1.0"
 
 [dependencies]
 
 ark-ff = { version = "^0.5.0", default-features = false, features = [
-    "parallel",
-    "asm",
+  "parallel",
+  "asm",
 ] }
-ark-std = { version = "^0.5.0", default-features = false, features = [
-    "parallel",
+ark-r1cs-std = { version = "^0.5.0", default-features = false, features = [
+  "parallel",
 ] }
 ark-relations = { version = "^0.5.0", default-features = false }
-ark-r1cs-std = { version = "^0.5.0", default-features = false, features = [
-    "parallel",
-] }
 ark-serialize = { version = "^0.5.0", default-features = false }
+ark-std = { version = "^0.5.0", default-features = false, features = [
+  "parallel",
+] }
 num-bigint = "0.4"
 
 folding-schemes = { git = "https://github.com/privacy-scaling-explorations/sonobe", package = "folding-schemes" }
 
-acvm = { git = "https://github.com/noir-lang/noir" }
+acvm                  = { git = "https://github.com/noir-lang/noir" }
 bn254_blackbox_solver = { git = "https://github.com/noir-lang/noir" }
 # acvm = { git = "https://github.com/winderica/noir", branch = "arkworks-next", default-features = false }
 
-serde = { version = "^1.0.0", features = ["derive"] }
+ark-bn254  = { version = "^0.5" }
+serde      = { version = "^1.0.0", features = ["derive"] }
 serde_json = "^1.0.0"
-ark-bn254 = { version = "^0.5" }
 
 [profile.release]
-opt-level = 3
-lto = "fat"
 codegen-units = 1
-panic = "abort"
-strip = true
+lto           = "fat"
+opt-level     = 3
+panic         = "abort"
+strip         = true

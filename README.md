@@ -1,61 +1,70 @@
-![Pluto Logo](assets/Pluto%20Logo_White.svg)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/pluto/.github/main/profile/assets/assets_ios_Pluto-1024%401x.png" alt="Pluto Logo" width="50" height="50">
+  <span style="font-size: 28px; vertical-align: 10px; margin: 0 10px;">❤️</span>
+  <img src="https://raw.githubusercontent.com/noir-lang/noir/a1cf830b3cdf17a9265b8bdbf366d65c253f0ca4/noir-logo.png" alt="The Noir Programming Language" width="50">
+</p>
 
 ---
 
-# Project Name
+# Noir Web Prover Circuits
 
-Brief description of what this project does and its core value proposition.
+A collection of zero-knowledge circuits written in Noir for creating Web Proofs. These circuits enable secure authentication, HTTP request verification, and JSON data extraction in zero-knowledge applications.
 
 ## Features
 
-- Key feature one with a brief explanation
-- Key feature two with a brief explanation
-- ...
+- **Encryption/Plaintext Authentication Circuit**: Verify encrypted data and authenticate plaintext without revealing sensitive information
+- **HTTP Parser and Header Locker**: Parse and lock HTTP headers in zero-knowledge proofs, ensuring request integrity
+- **JSON Parser/Extractor**: Extract and verify specific fields from JSON data within zero-knowledge proofs
+- **Constraint Counter**: Utility to analyze R1CS constraint counts for circuit optimization
 
 ## Getting Started
 
-These instructions will help you get a copy of the project up and running on your local machine.
+These instructions will help you get the circuits up and running on your local machine.
 
 ### Prerequisites
 
-What things you need to install and how to install them:
+You'll need to have Rust and Cargo installed on your system. Then, install the `just` command runner:
 
 ```bash
-npm install 
-# or ...
+cargo install just
 ```
 
 ### Installation
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/username/project.git
+   git clone https://github.com/pluto/noir-web-prover-circuits.git
+   cd noir-web-prover-circuits
    ```
 
-2. Install dependencies
+2. Set up the development environment
    ```bash
-   cd project
-   npm install # or equivalent for your project
+   # This will install Noirup, Nargo, and required tools
+   just setup
    ```
 
-3. Configure environment variables
+3. Build the workspace
    ```bash
-   cp .env.example .env
-   # Edit .env with your values
+   just build
    ```
 
-4. ...
+### Available Commands
+
+- `just`: List all available commands
+- `just setup`: Set up complete development environment
+- `just build`: Build the entire Nargo workspace
+- `just test`: Run all tests
+- `just fmt`: Format code (Noir and TOML)
+- `just ci`: Run all CI checks
 
 ## Usage
 
-Show basic examples of how to use your project:
+### Using the Constraint Counter
 
-```python
-# If it's a Python project
-from project import Example
+The `constraint_counter` utility helps analyze the R1CS constraints in your circuits:
 
-example = Example()
-result = example.do_something()
+```bash
+cargo run --bin constraint_counter <circuit_name>
 ```
 
 ## Contributing
@@ -72,6 +81,4 @@ This project is licensed under the Apache V2 License - see the [LICENSE](LICENSE
 
 ## Acknowledgments
 
-- List any contributors
-- Reference any inspiration, code snippets, etc.
-- Link to relevant blog posts or documentation
+- The [Noir Programming Language](https://noir-lang.org/) team for their ZK circuit development framework

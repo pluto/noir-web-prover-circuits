@@ -1,9 +1,9 @@
 [package]
-name = "bin"
-type = "bin"
-version = "0.1.0"
-authors = ["Colin Roberts"]
+authors          = ["Colin Roberts"]
 compiler_version = ">=0.36.0"
+name             = "bin"
+type             = "bin"
+version          = "0.1.0"
 
 [dependencies]
 http = { path = "../http" }
