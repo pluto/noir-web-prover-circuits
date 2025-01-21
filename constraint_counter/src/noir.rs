@@ -4,6 +4,7 @@ use acvm::{
         circuit::{brillig::BrilligBytecode, Circuit, Program},
         native_types::{Witness as AcvmWitness, WitnessMap},
     },
+    blackbox_solver::StubbedBlackBoxSolver,
     pwg::ACVM,
 };
 use ark_ff::PrimeField;
@@ -16,10 +17,8 @@ use std::collections::HashMap;
 use super::*;
 use crate::bridge::AcirCircuitSonobe;
 
-use folding_schemes::Error; // TODO: remove this crate entirely
-
 #[derive(Clone, Debug)]
-pub struct NoirFCircuit<const PUBLIC_IO_LENGTH: usize, const PRIVATE_INPUT_LENGTH: usize> {
+pub struct NoirFCircuit {
     pub circuit: Circuit<GenericFieldElement<Fr>>,
     pub unconstrained_functions: Vec<BrilligBytecode<GenericFieldElement<Fr>>>,
 }
@@ -33,47 +32,31 @@ pub struct ProgramArtifactGeneric<F: PrimeField> {
     pub bytecode: Program<GenericFieldElement<F>>,
 }
 
-impl<const PUBLIC_IO_LENGTH: usize, const PRIVATE_INPUT_LENGTH: usize>
-    NoirFCircuit<PUBLIC_IO_LENGTH, PRIVATE_INPUT_LENGTH>
-{
-    pub fn new(bin: &[u8]) -> Result<Self, Error> {
-        let program: ProgramArtifactGeneric<Fr> =
-            serde_json::from_slice(bin).map_err(|err| Error::JSONSerdeError(err.to_string()))?;
+impl NoirFCircuit {
+    pub fn new(bin: &[u8]) -> Self {
+        let program: ProgramArtifactGeneric<Fr> = serde_json::from_slice(bin).unwrap();
         let circuit: Circuit<GenericFieldElement<Fr>> = program.bytecode.functions[0].clone();
-        let ivc_input_length = circuit.public_parameters.0.len();
+        let public_io_length = circuit.public_parameters.0.len();
         let ivc_return_length = circuit.return_values.0.len();
 
-        if ivc_input_length != ivc_return_length {
-            return Err(Error::NotSameLength(
-                "IVC input: ".to_string(),
-                ivc_input_length,
-                "IVC output: ".to_string(),
-                ivc_return_length,
-            ));
-        }
-        if ivc_input_length != PUBLIC_IO_LENGTH {
-            return Err(Error::NotSameLength(
-                "IVC input: ".to_string(),
-                ivc_input_length,
-                "PUBLIC_IO_LENGTH: ".to_string(),
-                PUBLIC_IO_LENGTH,
-            ));
+        if public_io_length != ivc_return_length {
+            panic!("Public input and output are not the same length!'\n    IVC input: {public_io_length}\n    IVC output: {ivc_return_length}");
         }
 
-        Ok(Self {
+        Self {
             circuit,
             unconstrained_functions: program.bytecode.unconstrained_functions,
-        })
+        }
     }
 
     pub fn generate_step_constraints(
         &self,
         cs: ConstraintSystemRef<Fr>,
-        z_i: [FpVar<Fr>; PUBLIC_IO_LENGTH],
-        external_inputs: [FpVar<Fr>; PRIVATE_INPUT_LENGTH],
+        z_i: &[FpVar<Fr>],
+        external_inputs: &[FpVar<Fr>],
     ) -> Result<Vec<FpVar<Fr>>, SynthesisError> {
         let mut acvm = ACVM::new(
-            &bn254_blackbox_solver::Bn254BlackBoxSolver(false),
+            &StubbedBlackBoxSolver(false),
             &self.circuit.opcodes,
             WitnessMap::new(),
             &self.unconstrained_functions,
@@ -106,7 +89,7 @@ impl<const PUBLIC_IO_LENGTH: usize, const PRIVATE_INPUT_LENGTH: usize>
 
         // computes the witness
         let start = std::time::Instant::now();
-        let _status = dbg!(acvm.solve());
+        let _status = acvm.solve();
         let witness_map = acvm.finalize();
         println!("ACVM solve and finalize: {:?}", start.elapsed());
 
@@ -137,83 +120,4 @@ impl<const PUBLIC_IO_LENGTH: usize, const PRIVATE_INPUT_LENGTH: usize>
 
         Ok(assigned_z_i1)
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use ark_bn254::Fr;
-    use ark_ff::PrimeField;
-    use ark_r1cs_std::R1CSVar;
-    use ark_r1cs_std::{alloc::AllocVar, fields::fp::FpVar};
-    use ark_relations::r1cs::ConstraintSystem;
-    use folding_schemes::{frontend::FCircuit, Error};
-    use std::env;
-
-    use crate::noir::NoirFCircuit;
-
-    /// Native implementation of `src/noir/test_folder/test_circuit`
-    fn external_inputs_step_native<F: PrimeField>(z_i: Vec<F>, external_inputs: Vec<F>) -> Vec<F> {
-        let xx = external_inputs[0] * z_i[0];
-        let yy = external_inputs[1] * z_i[1];
-        vec![xx, yy]
-    }
-
-    #[test]
-    fn test_step_native() -> Result<(), Error> {
-        let inputs = vec![Fr::from(2), Fr::from(5)];
-        let res = external_inputs_step_native(inputs.clone(), inputs);
-        assert_eq!(res, vec![Fr::from(4), Fr::from(25)]);
-        Ok(())
-    }
-
-    // #[test]
-    // fn test_step_constraints() -> Result<(), Error> {
-    //     let cs = ConstraintSystem::<Fr>::new_ref();
-    //     let cur_path = env::current_dir()?;
-    //     // external inputs length: 2, state length: 2
-    //     let noirfcircuit = NoirFCircuit::<Fr, 2>::new((
-    //         cur_path
-    //             .join("src/noir/test_folder/test_circuit/target/test_circuit.json")
-    //             .into(),
-    //         2,
-    //     ))?;
-    //     let inputs = vec![Fr::from(2), Fr::from(5)];
-    //     let z_i = Vec::<FpVar<Fr>>::new_witness(cs.clone(), || Ok(inputs.clone()))?;
-    //     let external_inputs = Vec::<FpVar<Fr>>::new_witness(cs.clone(), || Ok(inputs))?;
-    //     let output = noirfcircuit.generate_step_constraints(
-    //         cs.clone(),
-    //         0,
-    //         z_i,
-    //         VecFpVar(external_inputs),
-    //     )?;
-    //     assert_eq!(output[0].value()?, Fr::from(4));
-    //     assert_eq!(output[1].value()?, Fr::from(25));
-    //     Ok(())
-    // }
-
-    // #[test]
-    // fn test_step_constraints_no_external_inputs() -> Result<(), Error> {
-    //     let cs = ConstraintSystem::<Fr>::new_ref();
-    //     let cur_path = env::current_dir()?;
-    //     // external inputs length: 0, state length: 2
-    //     let noirfcircuit = NoirFCircuit::<Fr, 0>::new((
-    //         cur_path
-    //             .join("src/noir/test_folder/test_no_external_inputs/target/test_no_external_inputs.json")
-    //             .into(),
-    //         2,
-    //     ))
-    //     ?;
-    //     let inputs = vec![Fr::from(2), Fr::from(5)];
-    //     let z_i = Vec::<FpVar<Fr>>::new_witness(cs.clone(), || Ok(inputs.clone()))?;
-    //     let external_inputs = vec![];
-    //     let output = noirfcircuit.generate_step_constraints(
-    //         cs.clone(),
-    //         0,
-    //         z_i,
-    //         VecFpVar(external_inputs),
-    //     )?;
-    //     assert_eq!(output[0].value()?, Fr::from(4));
-    //     assert_eq!(output[1].value()?, Fr::from(25));
-    //     Ok(())
-    // }
 }

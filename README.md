@@ -61,10 +61,10 @@ cargo install just
 
 ### Using the Constraint Counter
 
-The `constraint_counter` utility helps analyze the R1CS constraints in your circuits:
+After running `just setup` you will also get access to the `constraint_counter` utility helps analyze the R1CS constraints in your circuits:
 
 ```bash
-cargo run --bin constraint_counter <circuit_name>
+constraint_counter --circuit <circuit_name> --public-io-length <#_of_pub_inputs> --private-input-length <#_of_priv_inputs>
 ```
 
 ## Contributing

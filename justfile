@@ -22,6 +22,10 @@ native_arch := if `uname -m` == "arm64" { "aarch64" } else { `uname -m` }
 install-noir:
     curl -L https://raw.githubusercontent.com/noir-lang/noirup/refs/heads/main/install | bash noirup
 
+# Install Noirup and Nargo
+install-constraint-counter:
+    cargo install --path constraint_counter
+
 # Install cargo tools
 install-tools:
     @just header "Installing tools"
@@ -34,13 +38,13 @@ install-tools:
     fi
 
 # Setup complete development environment
-setup: install-tools install-noir
+setup: install-tools install-noir install-constraint-counter
     @printf "{{success}}{{bold}}Development environment setup complete!{{reset}}\n"
 
 # Build entire Nargo workspace with local target
 build:
     @just header "Building workspace"
-    nargo build --workspace
+    nargo build --workspace --expression-width 0
 
 # Run tests for Nargo workspace
 test:
