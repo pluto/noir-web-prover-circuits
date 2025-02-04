@@ -99,6 +99,7 @@ impl<'a, ConstraintF: Field + PrimeField> ConstraintSynthesizer<ConstraintF>
     }
 }
 
+#[allow(clippy::fallible_impl_from)]
 impl<'a, F: PrimeField>
     From<(
         &Circuit<GenericFieldElement<F>>,
@@ -123,6 +124,7 @@ impl<'a, F: PrimeField>
                 if let Opcode::AssertZero(code) = opcode {
                     Some(code.clone())
                 } else {
+                    dbg!(opcode);
                     None
                 }
             })

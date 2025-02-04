@@ -3,13 +3,17 @@ use std::{cell::RefCell, path::Path, rc::Rc};
 use ark_bn254::Fr;
 use ark_ff::AdditiveGroup;
 use ark_r1cs_std::{alloc::AllocVar, fields::fp::FpVar};
-use ark_relations::r1cs::{ConstraintSystem, ConstraintSystemRef, SynthesisMode};
+use ark_relations::r1cs::{
+    ConstraintSynthesizer, ConstraintSystem, ConstraintSystemRef, SynthesisMode,
+};
 
 use clap::Parser;
-use noir::NoirFCircuit;
+use noir::NoirCircuit;
+use simple::NoirProgram;
 
 pub mod bridge;
 pub mod noir;
+pub mod simple;
 
 #[derive(Parser)]
 #[command(name = "constraint_counter")]
@@ -40,28 +44,32 @@ pub fn main() {
         }
     };
 
-    let circuit = NoirFCircuit::new(&noir_json);
-
     let mut cs = ConstraintSystem::<Fr>::new();
     cs.mode = SynthesisMode::Prove {
-        construct_matrices: false,
+        construct_matrices: true,
     };
     let cs = ConstraintSystemRef::<Fr>::CS(Rc::new(RefCell::new(cs)));
 
-    // Use array directly for public inputs
-    let pub_inputs = vec![Fr::ZERO; args.public_io_length];
-    let z_i = Vec::<FpVar<Fr>>::new_witness(cs.clone(), || Ok(pub_inputs)).unwrap();
+    let program = NoirProgram::new(&noir_json);
+    program.generate_constraints(cs.clone());
+    cs.finalize();
 
-    // Use array directly for external inputs
-    let external_inputs = vec![Fr::ZERO; args.private_input_length];
-    let external_inputs =
-        Vec::<FpVar<Fr>>::new_witness(cs.clone(), || Ok(external_inputs)).unwrap();
+    // let circuit = NoirCircuit::new(&noir_json);
 
-    let start = std::time::Instant::now();
-    circuit
-        .generate_step_constraints(cs.clone(), &z_i, &external_inputs)
-        .unwrap();
-    println!("Duration for witness solving: {:?}", start.elapsed());
+    // // Use array directly for public inputs
+    // let pub_inputs = vec![Fr::ZERO; args.public_io_length];
+    // let z_i = Vec::<FpVar<Fr>>::new_witness(cs.clone(), || Ok(pub_inputs)).unwrap();
 
+    // // Use array directly for external inputs
+    // let external_inputs = vec![Fr::ZERO; args.private_input_length];
+    // let external_inputs =
+    //     Vec::<FpVar<Fr>>::new_witness(cs.clone(), || Ok(external_inputs)).unwrap();
+
+    // let start = std::time::Instant::now();
+    // circuit
+    //     .generate_step_constraints(cs.clone(), &z_i, &external_inputs)
+    //     .unwrap();
+    // println!("Duration for witness solving: {:?}", start.elapsed());
+    dbg!(cs.to_matrices());
     dbg!(cs.num_constraints());
 }

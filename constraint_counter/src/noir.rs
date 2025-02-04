@@ -18,7 +18,7 @@ use super::*;
 use crate::bridge::AcirCircuitSonobe;
 
 #[derive(Clone, Debug)]
-pub struct NoirFCircuit {
+pub struct NoirCircuit {
     pub circuit: Circuit<GenericFieldElement<Fr>>,
     pub unconstrained_functions: Vec<BrilligBytecode<GenericFieldElement<Fr>>>,
 }
@@ -32,7 +32,7 @@ pub struct ProgramArtifactGeneric<F: PrimeField> {
     pub bytecode: Program<GenericFieldElement<F>>,
 }
 
-impl NoirFCircuit {
+impl NoirCircuit {
     pub fn new(bin: &[u8]) -> Self {
         let program: ProgramArtifactGeneric<Fr> = serde_json::from_slice(bin).unwrap();
         let circuit: Circuit<GenericFieldElement<Fr>> = program.bytecode.functions[0].clone();
