@@ -8,7 +8,7 @@ use ark_relations::r1cs::{
 };
 
 use clap::Parser;
-use noir::NoirCircuit;
+// use noir::NoirCircuit;
 use simple::NoirProgram;
 
 pub mod bridge;
@@ -67,4 +67,40 @@ pub fn main() {
     cs.borrow_mut().unwrap().instance_assignment = vec![Fr::ONE, Fr::ONE];
     cs.borrow_mut().unwrap().witness_assignment = vec![Fr::ONE, -Fr::ONE];
     dbg!(cs.is_satisfied());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_mock_noir_circuit() {
+        // Circuit definition:
+        // x_0 * w_0 + w_1 + 2 == 0
+        let json_path = Path::new("./mock").join(format!("mock.json"));
+        let noir_json = std::fs::read(&json_path).unwrap();
+
+        let mut cs = ConstraintSystem::<Fr>::new();
+        cs.mode = SynthesisMode::Setup;
+        cs.optimization_goal = OptimizationGoal::Constraints;
+        let cs = ConstraintSystemRef::<Fr>::CS(Rc::new(RefCell::new(cs)));
+
+        let program = NoirProgram::new(&noir_json);
+        program.generate_constraints(cs.clone());
+        cs.finalize();
+
+        cs.set_mode(SynthesisMode::Prove {
+            construct_matrices: true,
+        });
+
+        dbg!(cs.to_matrices());
+        dbg!(cs.num_instance_variables());
+        dbg!(cs.num_witness_variables());
+        // NOTE, the 0th instance assignment is the constant term enabler.
+        // This example is:
+        // 2 * 3 + (-8) + 2 == 0
+        cs.borrow_mut().unwrap().instance_assignment = vec![Fr::ONE, Fr::from(2)];
+        cs.borrow_mut().unwrap().witness_assignment = vec![Fr::from(3), -Fr::from(8)];
+        cs.is_satisfied();
+    }
 }
