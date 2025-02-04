@@ -22,14 +22,6 @@ struct Args {
     /// Path to the circuit JSON file
     #[arg(short, long)]
     circuit: String,
-
-    /// Length of public IO
-    #[arg(long)]
-    public_io_length: usize,
-
-    /// Length of private input
-    #[arg(long)]
-    private_input_length: usize,
 }
 
 pub fn main() {

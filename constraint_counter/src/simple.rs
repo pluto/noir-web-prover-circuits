@@ -4,15 +4,14 @@ use acvm::{
     acir::{
         acir_field::GenericFieldElement,
         circuit::{brillig::BrilligBytecode, Circuit, Opcode, Program},
-        native_types::Witness,
+        native_types::{Witness, WitnessMap},
     },
+    blackbox_solver::StubbedBlackBoxSolver,
+    pwg::ACVM,
     AcirField,
 };
 use ark_ff::Field;
-use ark_relations::{
-    lc,
-    r1cs::{ConstraintSynthesizer, LinearCombination, Variable},
-};
+use ark_relations::r1cs::{ConstraintSynthesizer, LinearCombination, Variable};
 use serde::{Deserialize, Serialize};
 
 use super::*;
@@ -38,6 +37,43 @@ impl NoirProgram {
     pub fn unconstrained_functions(&self) -> &Vec<BrilligBytecode<GenericFieldElement<Fr>>> {
         &self.bytecode.unconstrained_functions
     }
+
+    pub fn solve(
+        &self,
+        instance_variables: &[Fr],
+        witness_variables: &[Fr],
+    ) -> WitnessMap<GenericFieldElement<Fr>> {
+        let mut acvm = ACVM::new(
+            &StubbedBlackBoxSolver(false),
+            &self.circuit().opcodes,
+            WitnessMap::new(),
+            self.unconstrained_functions(),
+            &[],
+        );
+
+        self.circuit()
+            .public_parameters
+            .0
+            .iter()
+            .for_each(|witness| {
+                let f =
+                    GenericFieldElement::<Fr>::from_repr(instance_variables[witness.as_usize()]);
+                acvm.overwrite_witness(*witness, f);
+            });
+
+        // write witness values for external_inputs
+        self.circuit()
+            .private_parameters
+            .iter()
+            .for_each(|witness| {
+                let idx = witness.as_usize() - instance_variables.len();
+
+                let f = GenericFieldElement::<Fr>::from_repr(witness_variables[idx]);
+                acvm.overwrite_witness(*witness, f);
+            });
+        let _status = acvm.solve();
+        acvm.finalize()
+    }
 }
 
 impl ConstraintSynthesizer<Fr> for NoirProgram {
@@ -53,12 +89,12 @@ impl ConstraintSynthesizer<Fr> for NoirProgram {
 
         // Then, allocate known private witnesses
         let private_params = &self.circuit().private_parameters;
-        for &witness in private_params.iter() {
+        for &witness in private_params {
             let var = cs.new_witness_variable(|| Ok(Fr::ZERO))?;
             witness_map.insert(witness, var);
         }
 
-        for opcode in self.circuit().opcodes.iter() {
+        for opcode in &self.circuit().opcodes {
             if let Opcode::AssertZero(gate) = opcode {
                 let mut left_terms = LinearCombination::<Fr>::new();
                 let mut right_terms = LinearCombination::<Fr>::new();
@@ -90,6 +126,9 @@ impl ConstraintSynthesizer<Fr> for NoirProgram {
 
                 // The constraint becomes: left_terms * right_terms + output_terms = 0
                 cs.enforce_constraint(left_terms, right_terms, -output_terms)?;
+            }
+            if let Opcode::MemoryInit { .. } | Opcode::MemoryOp { .. } = opcode {
+                panic!("Memory Opcode was used! This is not currently supported.");
             }
         }
 
