@@ -2,18 +2,15 @@ use std::{cell::RefCell, path::Path, rc::Rc};
 
 use ark_bn254::Fr;
 use ark_ff::{AdditiveGroup, Field};
-use ark_r1cs_std::{alloc::AllocVar, fields::fp::FpVar};
 use ark_relations::r1cs::{
     ConstraintSynthesizer, ConstraintSystem, ConstraintSystemRef, OptimizationGoal, SynthesisMode,
 };
 
 use clap::Parser;
-// use noir::NoirCircuit;
-use simple::NoirProgram;
 
-pub mod bridge;
+use noir::NoirProgram;
+
 pub mod noir;
-pub mod simple;
 
 #[derive(Parser)]
 #[command(name = "constraint_counter")]
@@ -93,6 +90,18 @@ mod tests {
         // 2 * 3 + (-8) + 2 == 0
         cs.borrow_mut().unwrap().instance_assignment = vec![Fr::ONE, Fr::from(2)];
         cs.borrow_mut().unwrap().witness_assignment = vec![Fr::from(3), -Fr::from(8)];
-        cs.is_satisfied();
+        assert!(cs.is_satisfied().unwrap());
+    }
+
+    #[test]
+    fn test_mock_noir_solve() {
+        // Circuit definition:
+        // x_0 * w_0 + w_1 + 2 == 0
+        let json_path = Path::new("./mock").join(format!("mock.json"));
+        let noir_json = std::fs::read(&json_path).unwrap();
+
+        let program = NoirProgram::new(&noir_json);
+        // NOTE: Don't need to have the instance assignment set to 1 here, so we need a method to handle this if we were sticking with this CS.
+        program.solve(&[Fr::from(2)], &[Fr::from(3), -Fr::from(8)]);
     }
 }
