@@ -1,7 +1,7 @@
 use std::{cell::RefCell, path::Path, rc::Rc};
 
 use ark_bn254::Fr;
-use ark_ff::{AdditiveGroup, Field};
+use ark_ff::AdditiveGroup;
 use ark_relations::r1cs::{
     ConstraintSynthesizer, ConstraintSystem, ConstraintSystemRef, OptimizationGoal, SynthesisMode,
 };
@@ -44,18 +44,6 @@ pub fn main() {
     program.generate_constraints(cs.clone());
     cs.finalize();
     dbg!(cs.num_constraints());
-
-    cs.set_mode(SynthesisMode::Prove {
-        construct_matrices: true,
-    });
-
-    dbg!(cs.to_matrices());
-    dbg!(cs.num_instance_variables());
-    dbg!(cs.num_witness_variables());
-    // TODO: Note the first instance assignment is for the CONSTANT terms, so it should usually just be 1
-    cs.borrow_mut().unwrap().instance_assignment = vec![Fr::ONE, Fr::ONE];
-    cs.borrow_mut().unwrap().witness_assignment = vec![Fr::ONE, -Fr::ONE];
-    dbg!(cs.is_satisfied());
 }
 
 #[cfg(test)]
