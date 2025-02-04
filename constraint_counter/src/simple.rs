@@ -44,6 +44,20 @@ impl ConstraintSynthesizer<Fr> for NoirProgram {
     fn generate_constraints(self, cs: ConstraintSystemRef<Fr>) -> ark_relations::r1cs::Result<()> {
         let mut witness_map: HashMap<Witness, Variable> = HashMap::new();
 
+        // First, allocate all public inputs
+        let public_inputs = &self.circuit().public_inputs().0;
+        for &witness in public_inputs {
+            let var = cs.new_input_variable(|| Ok(Fr::ZERO))?;
+            witness_map.insert(witness, var);
+        }
+
+        // Then, allocate known private witnesses
+        let private_params = &self.circuit().private_parameters;
+        for &witness in private_params.iter() {
+            let var = cs.new_witness_variable(|| Ok(Fr::ZERO))?;
+            witness_map.insert(witness, var);
+        }
+
         for opcode in self.circuit().opcodes.iter() {
             if let Opcode::AssertZero(gate) = opcode {
                 let mut left_terms = LinearCombination::<Fr>::new();

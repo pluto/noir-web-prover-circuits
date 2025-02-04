@@ -1,10 +1,10 @@
 use std::{cell::RefCell, path::Path, rc::Rc};
 
 use ark_bn254::Fr;
-use ark_ff::AdditiveGroup;
+use ark_ff::{AdditiveGroup, Field};
 use ark_r1cs_std::{alloc::AllocVar, fields::fp::FpVar};
 use ark_relations::r1cs::{
-    ConstraintSynthesizer, ConstraintSystem, ConstraintSystemRef, SynthesisMode,
+    ConstraintSynthesizer, ConstraintSystem, ConstraintSystemRef, OptimizationGoal, SynthesisMode,
 };
 
 use clap::Parser;
@@ -45,31 +45,26 @@ pub fn main() {
     };
 
     let mut cs = ConstraintSystem::<Fr>::new();
-    cs.mode = SynthesisMode::Prove {
-        construct_matrices: true,
-    };
+    cs.mode = SynthesisMode::Setup;
+    cs.optimization_goal = OptimizationGoal::Constraints;
     let cs = ConstraintSystemRef::<Fr>::CS(Rc::new(RefCell::new(cs)));
+    dbg!(cs.num_instance_variables());
+    dbg!(cs.num_witness_variables());
 
     let program = NoirProgram::new(&noir_json);
     program.generate_constraints(cs.clone());
     cs.finalize();
-
-    // let circuit = NoirCircuit::new(&noir_json);
-
-    // // Use array directly for public inputs
-    // let pub_inputs = vec![Fr::ZERO; args.public_io_length];
-    // let z_i = Vec::<FpVar<Fr>>::new_witness(cs.clone(), || Ok(pub_inputs)).unwrap();
-
-    // // Use array directly for external inputs
-    // let external_inputs = vec![Fr::ZERO; args.private_input_length];
-    // let external_inputs =
-    //     Vec::<FpVar<Fr>>::new_witness(cs.clone(), || Ok(external_inputs)).unwrap();
-
-    // let start = std::time::Instant::now();
-    // circuit
-    //     .generate_step_constraints(cs.clone(), &z_i, &external_inputs)
-    //     .unwrap();
-    // println!("Duration for witness solving: {:?}", start.elapsed());
-    dbg!(cs.to_matrices());
     dbg!(cs.num_constraints());
+
+    cs.set_mode(SynthesisMode::Prove {
+        construct_matrices: true,
+    });
+
+    dbg!(cs.to_matrices());
+    dbg!(cs.num_instance_variables());
+    dbg!(cs.num_witness_variables());
+    // TODO: Note the first instance assignment is for the CONSTANT terms, so it should usually just be 1
+    cs.borrow_mut().unwrap().instance_assignment = vec![Fr::ONE, Fr::ONE];
+    cs.borrow_mut().unwrap().witness_assignment = vec![Fr::ONE, -Fr::ONE];
+    dbg!(cs.is_satisfied());
 }
