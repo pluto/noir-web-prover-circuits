@@ -1,7 +1,5 @@
 use http::parse;
 
-pub fn main(item: pub [Field; 1], data: str<1024>) -> pub Field {
+pub fn main(data: str<1024>) {
     parse(data);
-    item[0]
 }
-
