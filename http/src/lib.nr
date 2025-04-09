@@ -1,4 +1,6 @@
 use std::hash::poseidon::bn254::hash_1;
+pub mod data;
+pub mod tests; 
 
 comptime global CARRIAGE_RETURN: u8 = "\r".as_bytes()[0]; // 13
 comptime global LINE_FEED: u8 = "\n".as_bytes()[0]; // 10
@@ -107,16 +109,7 @@ pub fn parse<let N: u32>(data: str<N>) {
     let mut parser = Parser::default();
     for character in data.as_bytes() {
         parser = parser.update_state(character);
-        // println(character);
-        // println(parser);
     }
-    // Assert HTTP was valid
-    // assert(parser.parsing_start == 1);
-    // assert(parser.parsing_header == 0);
-    // assert(!parser.parsing_header_name);
-    // assert(!parser.parsing_header_value);
-    // assert(parser.parsing_body);
-    // assert(parser.line_status == 0);
 }
 
 // TODO: can we use generics for input?
@@ -254,7 +247,6 @@ impl<let N: u32, let NUM_DIGESTS: u32> HttpVerification<N, NUM_DIGESTS> {
             }
         }
 
-
         // set parser state
         parser.line_digest = line_digests[N - 1];
         parser.line_monomial = line_monomials[N - 1] * self.polynomial_input;
@@ -269,55 +261,5 @@ impl<let N: u32, let NUM_DIGESTS: u32> HttpVerification<N, NUM_DIGESTS> {
         step_out[6] = body_monomials[N - 1];
 
         step_out
-    }
-}
-
-mod tests {
-    use super::{hash_accumulate, HttpVerification, parse, Parser, polynomial_digest};
-    use std::hash::poseidon::bn254::hash_2;
-
-    global NUM_HEADERS: u32 = 10;
-    global PUBLIC_IO_LENGTH: u32 = 11;
-
-    global data: str<89> = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 19\r\n\r\n{\"success\":\"true\"}";
-
-    fn polynomial_input() -> Field {
-        hash_2([69, 420])
-    }
-
-    #[test]
-    fn test_parse() {
-        parse(data, polynomial_input());
-    }
-
-    #[test]
-    fn test_http_verification() {
-        let polynomial_input = polynomial_input();
-
-        let mut line_digests = [Field::default(); NUM_HEADERS];
-        let input = "HTTP/1.1 200 OK".as_bytes().map(|x| x as Field);
-        line_digests[0] = polynomial_digest(input, polynomial_input, 1);
-        let input_1 = "Content-Type: application/json".as_bytes().map(|x| x as Field);
-        line_digests[1] = polynomial_digest(input_1, polynomial_input, 1);
-
-        let http_verification =
-            HttpVerification { data: data.as_bytes(), line_digests, polynomial_input };
-
-        let machine_state = Parser::default();
-        let step_in = [
-            0,
-            0,
-            1,
-            machine_state.digest(polynomial_input),
-            hash_accumulate(line_digests),
-            2,
-            0,
-            0,
-            0,
-            0,
-            0,
-        ];
-        let step_out = http_verification.verify(step_in, machine_state);
-        println(step_out);
     }
 }
