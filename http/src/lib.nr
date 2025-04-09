@@ -215,7 +215,7 @@ impl<let N: u32, let NUM_DIGESTS: u32> HttpVerification<N, NUM_DIGESTS> {
 
 mod tests {
     use super::{hash_accumulate, HttpVerification, parse, Parser, polynomial_digest};
-    use std::hash::poseidon::bn254::hash_1;
+    use std::hash::poseidon::bn254::hash_2;
 
     global NUM_HEADERS: u32 = 10;
     global PUBLIC_IO_LENGTH: u32 = 11;
@@ -223,7 +223,7 @@ mod tests {
     global data: str<89> = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 19\r\n\r\n{\"success\":\"true\"}";
 
     fn polynomial_input() -> Field {
-        hash_1([69])
+        hash_2([69, 420])
     }
 
     #[test]
