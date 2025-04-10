@@ -140,8 +140,11 @@ pub fn hash_accumulate<let N: u32>(input: [Field; N]) -> Field {
     let mut output = Field::default();
 
     for item in input {
-        let hashed = hash_1([item]);
-        output += hashed;
+        // filter only non-zero items
+        if item != 0 {
+            let hashed = hash_1([item]);
+            output += hashed;
+        }
     }
 
     output
