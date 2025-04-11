@@ -1,14 +1,9 @@
 use std::hash::poseidon::bn254::hash_1;
 
-comptime global CARRIAGE_RETURN: u8 = "\r".as_bytes()[0];
-comptime global LINE_FEED: u8 = "\n".as_bytes()[0];
-comptime global COLON: u8 = ":".as_bytes()[0];
-comptime global SPACE: u8 = " ".as_bytes()[0];
-
-// comptime global CARRIAGE_RETURN: Field = 13;
-// comptime global LINE_FEED: Field = 10;
-// comptime global COLON: Field = 58;
-// comptime global SPACE: Field = 32;
+comptime global CARRIAGE_RETURN: u8 = "\r".as_bytes()[0]; // 13
+comptime global LINE_FEED: u8 = "\n".as_bytes()[0]; // 10
+comptime global COLON: u8 = ":".as_bytes()[0]; // 58
+comptime global SPACE: u8 = " ".as_bytes()[0]; // 32
 
 // todo: pack parser into field
 struct Parser {
@@ -180,9 +175,8 @@ impl<let N: u32, let NUM_DIGESTS: u32> HttpVerification<N, NUM_DIGESTS> {
         machine_state: Parser,
     ) -> [Field; PUBLIC_IO_LENGTH] {
         let data_as_field = self.data.map(|f| f as Field);
-        let data_digest = polynomial_digest(data_as_field, self.polynomial_input, step_in[2]);
 
-        // assertions
+        let data_digest = polynomial_digest(data_as_field, self.polynomial_input, step_in[2]);
         let line_digests_hash = hash_accumulate(self.line_digests);
         assert_eq(machine_state.digest(self.polynomial_input), step_in[3]);
         assert_eq(line_digests_hash, step_in[4]);
@@ -190,24 +184,65 @@ impl<let N: u32, let NUM_DIGESTS: u32> HttpVerification<N, NUM_DIGESTS> {
         let mut parser = machine_state;
         let mut num_matched: Field = 0;
         let mut polynomial_input_pow = step_in[2];
+
+        let body_ctr_is_zero = step_in[6] == 0;
+        let initial_pow_accumulation = step_in[6] * self.polynomial_input;
+        let mut pow_accumulation = Field::default();
+
+        if body_ctr_is_zero {
+            if parser.parsing_body {
+                pow_accumulation = 1;
+            } else {
+                pow_accumulation = 0;
+            }
+        } else {
+            pow_accumulation = initial_pow_accumulation;
+        }
+
+        let mut body_monomials = [Field::default(); N];
+        let mut body_ctr = [Field::default(); N];
+        let mut body_switch = [Field::default(); N - 1];
+        let mut body_digest = [Field::default(); N];
+
+        if body_ctr_is_zero {
+            if parser.parsing_body {
+                body_ctr[0] = 1;
+            } else {
+                body_ctr[0] = 0;
+            }
+        } else {
+            body_ctr[0] = 1;
+        }
+
+        body_monomials[0] = pow_accumulation;
+        body_digest[0] = body_monomials[0] * data_as_field[0];
         for i in 0..N {
             parser = parser.update_state(self.data[i], self.polynomial_input);
             num_matched += self.line_digests.any(|x| x == parser.line_digest) as Field;
             if self.data[i] != 0 {
                 polynomial_input_pow *= self.polynomial_input;
             }
+            // parser means State[i]. using parser, we cannot get State[i+1]
+            // so utilize i-1 for calculations
+            if (i != 0) {
+                body_ctr[i] = body_ctr[i - 1];
+                if (parser.parsing_body) {
+                    body_ctr[i] += 1;
+                }
+                body_switch[i - 1] = (body_ctr[i] == 1) as Field;
+                body_monomials[i] =
+                    body_monomials[i - 1] * self.polynomial_input + body_switch[i - 1];
+                body_digest[i] = body_digest[i - 1] + body_monomials[i] * data_as_field[i];
+            }
         }
 
-        println(parser);
-        println(data_digest);
-
-        // step_in[6]: body_monomials not needed?
         let mut step_out = step_in;
         step_out[0] =
-            step_in[0] - data_digest + (parser.line_digest * parser.parsing_body as Field);
+            step_in[0] - data_digest + (body_digest[N - 1] * parser.parsing_body as Field);
         step_out[2] = polynomial_input_pow;
         step_out[3] = parser.digest(self.polynomial_input);
-        step_out[5] = step_in[5] - num_matched;
+        step_out[5] = step_in[5] - num_matched; // TODO: should I check?
+        step_out[6] = body_monomials[N - 1];
 
         step_out
     }
@@ -259,7 +294,6 @@ mod tests {
             0,
         ];
         let step_out = http_verification.verify(step_in, machine_state);
-
         println(step_out);
     }
 }
