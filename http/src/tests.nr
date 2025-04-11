@@ -303,5 +303,5 @@ fn test_http_verification_split_long_headers() {
     assert_eq(step_out_1[0], output_difference);
     assert_eq(step_out_1[2], polynomial_input.pow_32(response.len() as Field));
     assert_eq(step_out_1[5], 0);
-    assert_eq(step_out_1[6], polynomial_input.pow_32(body.len() as Field - 1));
+    assert_eq(step_out_1[6], polynomial_input.pow_32(body.len() as Field));
 }

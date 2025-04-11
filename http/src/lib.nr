@@ -1,6 +1,6 @@
 use std::hash::poseidon::bn254::hash_1;
 pub mod data;
-pub mod tests; 
+pub mod tests;
 
 comptime global CARRIAGE_RETURN: u8 = "\r".as_bytes()[0]; // 13
 comptime global LINE_FEED: u8 = "\n".as_bytes()[0]; // 10
@@ -61,7 +61,7 @@ impl Parser {
         polynomial_digest(self.into(), polynomial_input, 1)
     }
 
-    fn update_state(self, character: u8 ) -> Self {
+    fn update_state(self, character: u8) -> Self {
         let mut state = self;
 
         if !state.parsing_body {
@@ -165,7 +165,6 @@ impl<let N: u32, let NUM_DIGESTS: u32> HttpVerification<N, NUM_DIGESTS> {
 
         let mut polynomial_input_pow = step_in[2];
         let body_ctr_is_zero = step_in[6] == 0;
-        let initial_pow_accumulation = step_in[6] * self.polynomial_input;
         let mut pow_accumulation = Field::default();
         let mut body_switch = [Field::default(); N - 1];
 
@@ -173,8 +172,8 @@ impl<let N: u32, let NUM_DIGESTS: u32> HttpVerification<N, NUM_DIGESTS> {
 
         let mut line_monomials = [Field::default(); N];
         let mut body_monomials = [Field::default(); N];
-        let mut body_digest = [Field::default(); N];
         let mut line_digests = [Field::default(); N];
+        let mut body_digest = [Field::default(); N];
         let mut num_matched: Field = 0;
 
         let mut body_ctr = [Field::default(); N];
@@ -187,7 +186,7 @@ impl<let N: u32, let NUM_DIGESTS: u32> HttpVerification<N, NUM_DIGESTS> {
                 body_ctr[0] = 0;
             }
         } else {
-            pow_accumulation = initial_pow_accumulation;
+            pow_accumulation = step_in[6];
             body_ctr[0] = 1;
         }
 
@@ -216,7 +215,8 @@ impl<let N: u32, let NUM_DIGESTS: u32> HttpVerification<N, NUM_DIGESTS> {
             body_digest[i] = body_digest[i - 1] + body_monomials[i] * data_as_field[i];
 
             // line_monomials
-            let body_or_line_change = parser.parsing_body | (self.data[i] == 10) | (self.data[i] == 13);
+            let body_or_line_change =
+                parser.parsing_body | (self.data[i] == 10) | (self.data[i] == 13);
             let was_cleared = line_monomials[i - 1] == 0;
 
             if body_or_line_change {
@@ -229,7 +229,7 @@ impl<let N: u32, let NUM_DIGESTS: u32> HttpVerification<N, NUM_DIGESTS> {
                 }
             }
 
-              // calc line_digests
+            // calc line_digests
             let mut accum_prev = Field::default();
             if was_cleared {
                 accum_prev = 0;
@@ -247,18 +247,22 @@ impl<let N: u32, let NUM_DIGESTS: u32> HttpVerification<N, NUM_DIGESTS> {
             }
         }
 
-        // set parser state
+        // set next parser state
         parser.line_digest = line_digests[N - 1];
         parser.line_monomial = line_monomials[N - 1] * self.polynomial_input;
-        polynomial_input_pow *= self.polynomial_input;
+
+        let next_polynomial_input_pow = polynomial_input_pow * self.polynomial_input;
+        let next_body_monomial = body_monomials[N - 1] * self.polynomial_input;
 
         let mut step_out = step_in;
+        // step_out[1] == step_in[1], step_out[4] = step_in[4]
+
         step_out[0] =
             step_in[0] - data_digest + (body_digest[N - 1] * parser.parsing_body as Field);
-        step_out[2] = polynomial_input_pow;
+        step_out[2] = next_polynomial_input_pow;
         step_out[3] = parser.digest(self.polynomial_input);
-        step_out[5] = step_in[5] - num_matched; // TODO: should I check?
-        step_out[6] = body_monomials[N - 1];
+        step_out[5] = step_in[5] - num_matched;
+        step_out[6] = next_body_monomial;
 
         step_out
     }
