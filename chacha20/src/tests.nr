@@ -1,0 +1,178 @@
+// Helper function to simulate 32-bit addition with overflow
+fn add32(a: u32, b: u32) -> u32 {
+    let sum = (a as u64 + b as u64) & 0xFFFFFFFF;
+    sum as u32
+}
+
+// Helper function to simulate 32-bit rotation
+fn rotate_left32(x: u32, n: u8) -> u32 {
+    ((x << n) | (x >> (32 - n))) & 0xFFFFFFFF
+}
+
+// ChaCha20 Quarter Round operation
+// Takes four 32-bit unsigned integers and performs the quarter round operation
+fn quarter_round(a: u32, b: u32, c: u32, d: u32) -> (u32, u32, u32, u32) {
+    // 1. a += b; d ^= a; d <<<= 16;
+    let a1 = add32(a, b);
+    let d1 = d ^ a1;
+    let d2 = rotate_left32(d1, 16);
+
+    // 2. c += d; b ^= c; b <<<= 12;
+    let c1 = add32(c, d2);
+    let b1 = b ^ c1;
+    let b2 = rotate_left32(b1, 12);
+
+    // 3. a += b; d ^= a; d <<<= 8;
+    let a2 = add32(a1, b2);
+    let d3 = d2 ^ a2;
+    let d4 = rotate_left32(d3, 8);
+
+    // 4. c += d; b ^= c; b <<<= 7;
+    let c2 = add32(c1, d4);
+    let b3 = b2 ^ c2;
+    let b4 = rotate_left32(b3, 7);
+
+    (a2, b4, c2, d4)
+}
+
+// Structure that holds the chacha20 state
+struct ChaChaState {
+    state: [u32; 16]
+}
+
+impl ChaChaState {
+    // Instantiate a new chacha20 state with the required parameters
+    fn new(key: [u32; 8], nonce: [u32; 3], counter: u32) -> Self {
+        Self {
+            state: [
+                0x61707865, 0x3320646e, 0x79622d32, 0x6b206574, // Constants
+                key[0], key[1], key[2], key[3],
+                key[4], key[5], key[6], key[7],
+                counter, nonce[0], nonce[1], nonce[2]
+            ]
+        }
+    }
+
+    // Add two ChaChaState's together elementwise
+    fn add(&mut self, other: Self) {
+        for i in 0..16 {
+            self.state[i] = add32(self.state[i], other.state[i]);
+        }
+    }
+
+    // Serializes the state as 4-byte little endian words
+    // TODO: should I use this function?
+    // https://github.com/SleepingShell/noir-chacha20/blob/main/crates/chacha20/src/block.nr#L58
+    fn to_le_4bytes(self) -> [u32; 16] {
+        let mut res = [0; 16];
+        for i in 0..16 {
+            res[i] = ((self.state[i] & 0xFF) << 24)
+                + ((self.state[i] & 0xFF00) << 8)
+                + ((self.state[i] & 0xFF0000) >> 8)
+                + ((self.state[i] & 0xFF000000) >> 24);
+        }
+        res
+    }
+
+    fn to_bytes(self) -> [u32; 16] {
+        let mut res = [0; 16];
+        for i in 0..16 {
+            res[i] = self.state[i];
+        }
+        res
+    }
+
+    // Runs quarter round on the working state 8 times
+    fn inner_block(&mut self) {
+        // Column rounds
+        let (a0, a4, a8, a12) = quarter_round(self.state[0], self.state[4], self.state[8], self.state[12]);
+        let (a1, a5, a9, a13) = quarter_round(self.state[1], self.state[5], self.state[9], self.state[13]);
+        let (a2, a6, a10, a14) = quarter_round(self.state[2], self.state[6], self.state[10], self.state[14]);
+        let (a3, a7, a11, a15) = quarter_round(self.state[3], self.state[7], self.state[11], self.state[15]);
+
+        // Diagonal rounds
+        let (b0, b5, b10, b15) = quarter_round(a0, a5, a10, a15);
+        let (b1, b6, b11, b12) = quarter_round(a1, a6, a11, a12);
+        let (b2, b7, b8, b13) = quarter_round(a2, a7, a8, a13);
+        let (b3, b4, b9, b14) = quarter_round(a3, a4, a9, a14);
+
+        // Update state
+        self.state = [
+            b0, b1, b2, b3,
+            b4, b5, b6, b7,
+            b8, b9, b10, b11,
+            b12, b13, b14, b15
+        ];
+    }
+}
+
+// Main ChaCha20 block function
+fn chacha20_block(key: [u32; 8], nonce: [u32; 3], counter: u32) -> [u32; 16] {
+    let mut state = ChaChaState::new(key, nonce, counter);
+    let mut working_state = ChaChaState::new(key, nonce, counter);
+
+    // Run 10 rounds
+    for _i in 0..10 {
+        working_state.inner_block();
+    }
+
+    // Add working state to original state
+    state.add(working_state);
+    state.to_bytes()
+
+}
+
+#[test]
+fn test_quarter_round_example() {
+    // Example from RFC 7539
+    // 2.1.1.  Test Vector for the ChaCha Quarter Round
+    let a = 0x11111111;
+    let b = 0x01020304;
+    let c = 0x9b8d6f43;
+    let d = 0x01234567;
+
+    let (a_out, b_out, c_out, d_out) = quarter_round(a, b, c, d);
+    // Expected values from the example
+   assert_eq(a_out, 0xea2a92f4);
+   assert_eq(b_out, 0xcb1cf8ce);
+   assert_eq(c_out, 0x4581472e);
+   assert_eq(d_out, 0x5881c4bb);
+}
+
+#[test]
+fn test_quarter_round_zero_input() {
+    let (a_out, b_out, c_out, d_out) = quarter_round(0, 0, 0, 0);
+    // All zeros should result in all zeros
+    assert_eq(a_out, 0);
+    assert_eq(b_out, 0);
+    assert_eq(c_out, 0);
+    assert_eq(d_out, 0);
+}
+
+#[test]
+fn test_block_function() {
+    // https://www.rfc-editor.org/rfc/rfc7539.html#section-2.3.2
+    let mut key = [0 as u32; 8];
+    let key = [
+        0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
+        0x13121110, 0x17161514, 0x1b1a1918, 0x1f1e1d1c
+        ];
+
+    let nonce = [
+        0x09000000, 0x4a000000, 0x00000000
+
+    ];
+
+    let counter = 0x00000001;
+    let expected_result = [
+        0xe4e7f110, 0x15593bd1, 0x1fdd0f50, 0xc47120a3,
+        0xc7f4d1c7, 0x0368c033, 0x9aaa2204, 0x4e6cd4c3,
+        0x466482d2, 0x09aa9f07, 0x05d7c214, 0xa2028bd9,
+        0xd19c12b5, 0xb94e16de, 0xe883d0cb, 0x4e3c50a2
+    ];
+
+    let result = chacha20_block(key, nonce, counter);
+    for i in 0..16 {
+        assert(result[i] == expected_result[i]);
+    }
+}
