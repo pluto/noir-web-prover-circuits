@@ -11,7 +11,7 @@ fn rotate_left32(x: u32, n: u8) -> u32 {
 
 // ChaCha20 Quarter Round operation
 // Takes four 32-bit unsigned integers and performs the quarter round operation
-fn quarter_round(a: u32, b: u32, c: u32, d: u32) -> (u32, u32, u32, u32) {
+pub fn quarter_round(a: u32, b: u32, c: u32, d: u32) -> (u32, u32, u32, u32) {
     // 1. a += b; d ^= a; d <<<= 16;
     let a1 = add32(a, b);
     let d1 = d ^ a1;
@@ -37,7 +37,7 @@ fn quarter_round(a: u32, b: u32, c: u32, d: u32) -> (u32, u32, u32, u32) {
 
 // Structure that holds the chacha20 state
 struct ChaChaState {
-    state: [u32; 16]
+    state: [u32; 16],
 }
 
 impl ChaChaState {
@@ -46,10 +46,9 @@ impl ChaChaState {
         Self {
             state: [
                 0x61707865, 0x3320646e, 0x79622d32, 0x6b206574, // Constants
-                key[0], key[1], key[2], key[3],
-                key[4], key[5], key[6], key[7],
-                counter, nonce[0], nonce[1], nonce[2]
-            ]
+                key[0], key[1], key[2], key[3], key[4], key[5], key[6], key[7], counter, nonce[0],
+                nonce[1], nonce[2],
+            ],
         }
     }
 
@@ -85,10 +84,14 @@ impl ChaChaState {
     // Runs quarter round on the working state 8 times
     fn inner_block(&mut self) {
         // Column rounds
-        let (a0, a4, a8, a12) = quarter_round(self.state[0], self.state[4], self.state[8], self.state[12]);
-        let (a1, a5, a9, a13) = quarter_round(self.state[1], self.state[5], self.state[9], self.state[13]);
-        let (a2, a6, a10, a14) = quarter_round(self.state[2], self.state[6], self.state[10], self.state[14]);
-        let (a3, a7, a11, a15) = quarter_round(self.state[3], self.state[7], self.state[11], self.state[15]);
+        let (a0, a4, a8, a12) =
+            quarter_round(self.state[0], self.state[4], self.state[8], self.state[12]);
+        let (a1, a5, a9, a13) =
+            quarter_round(self.state[1], self.state[5], self.state[9], self.state[13]);
+        let (a2, a6, a10, a14) =
+            quarter_round(self.state[2], self.state[6], self.state[10], self.state[14]);
+        let (a3, a7, a11, a15) =
+            quarter_round(self.state[3], self.state[7], self.state[11], self.state[15]);
 
         // Diagonal rounds
         let (b0, b5, b10, b15) = quarter_round(a0, a5, a10, a15);
@@ -97,17 +100,11 @@ impl ChaChaState {
         let (b3, b4, b9, b14) = quarter_round(a3, a4, a9, a14);
 
         // Update state
-        self.state = [
-            b0, b1, b2, b3,
-            b4, b5, b6, b7,
-            b8, b9, b10, b11,
-            b12, b13, b14, b15
-        ];
+        self.state = [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15];
     }
 }
 
-// Main ChaCha20 block function
-fn chacha20_block(key: [u32; 8], nonce: [u32; 3], counter: u32) -> [u32; 16] {
+pub fn chacha20_block(key: [u32; 8], nonce: [u32; 3], counter: u32) -> [u32; 16] {
     let mut state = ChaChaState::new(key, nonce, counter);
     let mut working_state = ChaChaState::new(key, nonce, counter);
 
@@ -119,5 +116,4 @@ fn chacha20_block(key: [u32; 8], nonce: [u32; 3], counter: u32) -> [u32; 16] {
     // Add working state to original state
     state.add(working_state);
     state.to_bytes()
-
 }
