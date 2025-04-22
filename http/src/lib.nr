@@ -115,15 +115,15 @@ pub fn parse<let N: u32>(data: str<N>) {
 // TODO: can we use generics for input?
 pub fn polynomial_digest<let N: u32>(
     input: [Field; N],
-    polynomial_input: Field,
-    monomial_counter: Field,
+    digest_ratio: Field,
+    default_multiplier: Field,
 ) -> Field {
     let mut digest = Field::default();
 
-    let mut monomial = monomial_counter;
+    let mut multiplier = default_multiplier;
     for item in input {
-        digest += monomial * item; // TODO: check if subtyping is expensive
-        monomial *= polynomial_input;
+        digest += multiplier * item; // TODO: check if subtyping is expensive
+        multiplier *= digest_ratio;
     }
 
     digest
