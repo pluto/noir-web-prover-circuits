@@ -218,7 +218,8 @@ impl<let DATA_BYTES: u32, let PUBLIC_IO_LENGTH: u32> NivcState<DATA_BYTES, PUBLI
         let mut part_ciphertext_digest = Field::default();
         let mut plaintext_digest = Field::default();
 
-        part_ciphertext_digest = DataHasher::new(big_endian_ciphertext, step_in[10]);
+        part_ciphertext_digest = data_hasher(big_endian_ciphertext, step_in[10]);
+
         plaintext_digest = polynomial_digest(
             zeroed_plaintext.map(|x| x as Field),
             self.ciphertext_digest,
@@ -272,49 +273,45 @@ pub fn polynomial_digest<let N: u32>(
 
 use std::hash::{self, poseidon::bn254::hash_2};
 
-pub struct DataHasher<let DATA_BYTES: u32> {}
+pub fn data_hasher<let DATA_BYTES: u32>(data: [u8; DATA_BYTES], seed: Field) -> Field {
+    // ceil(DATA_BYTES/16) == (DATA_BYTES + 15) / 16 + 1
+    let mut hashes: [Field; (DATA_BYTES + 15) / 16 + 1] =
+        [Field::default(); (DATA_BYTES + 15) / 16 + 1];
+    hashes[0] = seed;
 
-impl<let DATA_BYTES: u32> DataHasher<DATA_BYTES> {
-    fn new(data: [u8; DATA_BYTES], seed: Field) -> Field {
-        // ceil(DATA_BYTES/16) == (DATA_BYTES + 15) / 16 + 1
-        let mut hashes: [Field; (DATA_BYTES + 15) / 16 + 1] =
-            [Field::default(); (DATA_BYTES + 15) / 16 + 1];
-        hashes[0] = seed;
+    // Process data in chunks of 16 bytes
+    for i in 0..((DATA_BYTES + 15) / 16) {
+        let mut packed_input = Field::default();
+        let mut is_padded_chunk = 0;
 
-        // Process data in chunks of 16 bytes
-        for i in 0..((DATA_BYTES + 15) / 16) {
-            let mut packed_input = Field::default();
-            let mut is_padded_chunk = 0;
+        // Process each byte in the chunk
+        for j in 0..16 {
+            let byte_idx = i * 16 + j;
+            if byte_idx < DATA_BYTES {
+                let is_padding = data[byte_idx] == 0;
+                if !is_padding {
+                    // Pack byte into input (little endian)
+                    let byte_value = Field::from(data[byte_idx] as u32);
 
-            // Process each byte in the chunk
-            for j in 0..16 {
-                let byte_idx = i * 16 + j;
-                if byte_idx < DATA_BYTES {
-                    let is_padding = data[byte_idx] == 0;
-                    if !is_padding {
-                        // Pack byte into input (little endian)
-                        let byte_value = Field::from(data[byte_idx] as u32);
+                    let pow_num = 8 * j;
+                    let shift = 2.pow_32(pow_num as Field);
 
-                        let pow_num = 8 * j;
-                        let shift = 2.pow_32(pow_num as Field);
-
-                        packed_input += byte_value * shift;
-                    } else {
-                        is_padded_chunk += 1;
-                    }
+                    packed_input += byte_value * shift;
+                } else {
+                    is_padded_chunk += 1;
                 }
-            }
-
-            // Compute next hash
-            if is_padded_chunk == 16 {
-                // If all bytes are padding, use previous hash
-                hashes[i + 1] = hashes[i];
-            } else {
-                // Use Poseidon hash function
-                hashes[i + 1] = hash_2([hashes[i], packed_input]);
             }
         }
 
-        hashes[hashes.len() - 1]
+        // Compute next hash
+        if is_padded_chunk == 16 {
+            // If all bytes are padding, use previous hash
+            hashes[i + 1] = hashes[i];
+        } else {
+            // Use Poseidon hash function
+            hashes[i + 1] = hash_2([hashes[i], packed_input]);
+        }
     }
+
+    hashes[hashes.len() - 1]
 }

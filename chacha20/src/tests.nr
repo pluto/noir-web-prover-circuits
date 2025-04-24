@@ -1,5 +1,5 @@
 use crate::chacha20::{chacha20_block, quarter_round};
-use crate::nivc::{DataHasher, NivcState, polynomial_digest};
+use crate::nivc::{data_hasher, NivcState, polynomial_digest};
 
 #[test]
 fn test_chacha20_quarter_round_example() {
@@ -80,7 +80,7 @@ fn test_chacha20_nivc_16_block() {
         0x9f, 0x08, 0x61, 0xd8,
     ];
 
-    let ciphertext_digest = DataHasher::new(expected_ciphertext, Field::default());
+    let ciphertext_digest = data_hasher(expected_ciphertext, Field::default());
 
     // Initialize NIVC state
     let nivc = NivcState { key, nonce, counter, plaintext, ciphertext_digest };
@@ -140,7 +140,7 @@ fn test_chacha20_nivc_padded_text() {
             paddedPlaintextByte[i] = 0;
         }
     }
-    let ciphertext_digest = DataHasher::new(expected_ciphertext, Field::from(0));
+    let ciphertext_digest = data_hasher(expected_ciphertext, Field::from(0));
 
     // Initialize NIVC state
     let nivc = NivcState { key, nonce, counter, plaintext: paddedPlaintextByte, ciphertext_digest };
