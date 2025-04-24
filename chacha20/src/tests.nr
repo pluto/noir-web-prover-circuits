@@ -1,5 +1,6 @@
 use crate::chacha20::{chacha20_block, quarter_round};
 use crate::nivc::{data_hasher, NivcState, polynomial_digest};
+use crate::nivc::PADDING_VALUE;
 
 #[test]
 fn test_chacha20_quarter_round_example() {
@@ -64,7 +65,7 @@ fn test_chacha20_nivc_16_block() {
     let counter: u32 = 1;
 
     // "Ladies and Gentlemen of the class of '99: If I could offer you o"
-    let plaintext: [u8; 64] = [
+    let plaintext: [Field; 64] = [
         0x4c, 0x61, 0x64, 0x69, 0x65, 0x73, 0x20, 0x61, 0x6e, 0x64, 0x20, 0x47, 0x65, 0x6e, 0x74,
         0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x20, 0x6f, 0x66, 0x20, 0x74, 0x68, 0x65, 0x20, 0x63, 0x6c,
         0x61, 0x73, 0x73, 0x20, 0x6f, 0x66, 0x20, 0x27, 0x39, 0x39, 0x3a, 0x20, 0x49, 0x66, 0x20,
@@ -112,7 +113,7 @@ fn test_chacha20_nivc_padded_text() {
     let nonce: [u32; 3] = [0x00000000, 0x4a000000, 0x00000000];
     let counter: u32 = 1;
     // "Ladies and Gentlemen of the class of '99: If I could offer you only one tip "
-    let plaintext: [u8; 76] = [
+    let plaintext: [Field; 76] = [
         0x4c, 0x61, 0x64, 0x69, 0x65, 0x73, 0x20, 0x61, 0x6e, 0x64, 0x20, 0x47, 0x65, 0x6e, 0x74,
         0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x20, 0x6f, 0x66, 0x20, 0x74, 0x68, 0x65, 0x20, 0x63, 0x6c,
         0x61, 0x73, 0x73, 0x20, 0x6f, 0x66, 0x20, 0x27, 0x39, 0x39, 0x3a, 0x20, 0x49, 0x66, 0x20,
@@ -131,13 +132,12 @@ fn test_chacha20_nivc_padded_text() {
     ];
 
     let totalLength = 128;
-    // let paddedPlaintextBytes = plaintext.concat(Array(totalLength - plaintext.length).fill(0));
-    let mut paddedPlaintextByte = [0; 128];
+    let mut paddedPlaintextByte = [Field::default(); 128];
     for i in 0..totalLength {
         if i < plaintext.len() {
             paddedPlaintextByte[i] = plaintext[i];
         } else {
-            paddedPlaintextByte[i] = 0;
+            paddedPlaintextByte[i] = PADDING_VALUE;
         }
     }
     let ciphertext_digest = data_hasher(expected_ciphertext, Field::from(0));
@@ -173,7 +173,7 @@ fn test_chacha20_nivc_padded_text_split() {
     let nonce: [u32; 3] = [0x00000000, 0x4a000000, 0x00000000];
     let counter: u32 = 1;
     // "Ladies and Gentlemen of the class of '99: If I could offer you only one tip "
-    let plaintext: [u8; 76] = [
+    let plaintext: [Field; 76] = [
         0x4c, 0x61, 0x64, 0x69, 0x65, 0x73, 0x20, 0x61, 0x6e, 0x64, 0x20, 0x47, 0x65, 0x6e, 0x74,
         0x6c, 0x65, 0x6d, 0x65, 0x6e, 0x20, 0x6f, 0x66, 0x20, 0x74, 0x68, 0x65, 0x20, 0x63, 0x6c,
         0x61, 0x73, 0x73, 0x20, 0x6f, 0x66, 0x20, 0x27, 0x39, 0x39, 0x3a, 0x20, 0x49, 0x66, 0x20,
@@ -192,19 +192,18 @@ fn test_chacha20_nivc_padded_text_split() {
     ];
 
     let totalLength = 128;
-    // let paddedPlaintextBytes = plaintext.concat(Array(totalLength - plaintext.length).fill(0));
-    let mut paddedPlaintextByte = [0; 128];
+    let mut paddedPlaintextByte = [Field::default(); 128];
     for i in 0..totalLength {
         if i < plaintext.len() {
             paddedPlaintextByte[i] = plaintext[i];
         } else {
-            paddedPlaintextByte[i] = 0;
+            paddedPlaintextByte[i] = PADDING_VALUE;
         }
     }
     let ciphertext_digest = data_hasher(expected_ciphertext, Field::from(0));
 
-    let mut plaintext_1 = [0; 64];
-    let mut plaintext_2 = [0; 64];
+    let mut plaintext_1 = [Field::default(); 64];
+    let mut plaintext_2 = [Field::default(); 64];
     for i in 0..64 {
         plaintext_1[i] = paddedPlaintextByte[i];
     }

@@ -1,6 +1,9 @@
 use crate::chacha20::{add32, chacha20_block};
 use std::hash::{self, poseidon::bn254::hash_2};
 
+// 21888242871839275222246405745257275088548364400416034343698204186575808495616
+pub comptime global PADDING_VALUE: Field = Field::from(-1);
+
 fn little_to_big_endian(word: u32) -> u32 {
     ((word & 0xFF) << 24)
         | ((word & 0xFF00) << 8)
@@ -74,7 +77,7 @@ pub struct NivcState<let DATA_BYTES: u32, let PUBLIC_IO_LENGTH: u32> {
     key: [u32; 8],
     nonce: [u32; 3],
     counter: u32,
-    plaintext: [u8; DATA_BYTES],
+    plaintext: [Field; DATA_BYTES],
     ciphertext_digest: Field,
 }
 
@@ -98,14 +101,14 @@ impl<let DATA_BYTES: u32, let PUBLIC_IO_LENGTH: u32> NivcState<DATA_BYTES, PUBLI
             let mut word: [u8; 4] = [0; 4];
             for j in 0..4 {
                 let byte_idx = i * 4 + j;
-                let is_padding_current = self.plaintext[byte_idx] == 0; // TODO: fix to -1.
+                let is_padding_current = self.plaintext[byte_idx] == PADDING_VALUE;
                 is_padding[byte_idx] = is_padding_current;
 
                 if is_padding_current {
                     word[j] = 0;
                     zeroed_plaintext[byte_idx] = 0;
                 } else {
-                    word[j] = self.plaintext[byte_idx];
+                    word[j] = self.plaintext[byte_idx] as u8;
                     zeroed_plaintext[byte_idx] = word[j];
                 }
             }
