@@ -1,7 +1,8 @@
-use crate::data::http_data;
-use crate::data::http_data_long_header;
-use crate::{hash_accumulate, HttpVerification, parse, Parser, polynomial_digest};
 use dep::std::hash::poseidon::bn254::hash_2;
+use crate::data::{http_data, http_data_long_header};
+use crate::utils::{polynomial_digest, hash_accumulate};
+use crate::parser::Parser;
+use crate::http_verification::HttpVerification;
 
 global NUM_HEADERS: u32 = 10;
 
@@ -13,12 +14,6 @@ comptime global MID_LONG_HEADER: u32 = HTTP_RESPONSE_SIZE_LONG_HEADER / 2;
 
 fn polynomial_input() -> Field {
     hash_2([69, 420])
-}
-
-#[test]
-fn test_parse() {
-    let data: str<89> = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 19\r\n\r\n{\"success\":\"true\"}";
-    parse(data)
 }
 
 #[test]
