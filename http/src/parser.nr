@@ -1,4 +1,4 @@
-use crate::{CARRIAGE_RETURN, LINE_FEED, COLON, SPACE};
+use crate::{CARRIAGE_RETURN, COLON, LINE_FEED, SPACE};
 use crate::utils::polynomial_digest;
 
 // todo: pack parser into field

@@ -1,5 +1,5 @@
 use crate::parser::Parser;
-use crate::utils::{polynomial_digest, hash_accumulate};
+use crate::utils::{hash_accumulate, polynomial_digest};
 
 // todo: should data be passed as zeroed
 pub struct NivcState<let N: u32, let NUM_DIGESTS: u32> {

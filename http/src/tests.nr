@@ -1,8 +1,8 @@
-use dep::std::hash::poseidon::bn254::hash_2;
 use crate::data::{http_data, http_data_long_header};
-use crate::utils::{polynomial_digest, hash_accumulate};
-use crate::parser::Parser;
 use crate::nivc::NivcState;
+use crate::parser::Parser;
+use crate::utils::{hash_accumulate, polynomial_digest};
+use dep::std::hash::poseidon::bn254::hash_2;
 
 global NUM_HEADERS: u32 = 10;
 
@@ -45,8 +45,7 @@ fn test_http_verification_no_header() {
         1,
     );
 
-    let nivc =
-        NivcState { data: response_plaintext_bytes, line_digests, polynomial_input };
+    let nivc = NivcState { data: response_plaintext_bytes, line_digests, polynomial_input };
 
     let machine_state = Parser::default();
 
@@ -104,8 +103,7 @@ fn test_http_verification_one_header() {
         1,
     );
 
-    let nivc =
-        NivcState { data: response_plaintext_bytes, line_digests, polynomial_input };
+    let nivc = NivcState { data: response_plaintext_bytes, line_digests, polynomial_input };
 
     let machine_state = Parser::default();
     let step_in = [
@@ -173,8 +171,7 @@ fn test_http_verification_split_two_headers() {
         response_plaintext_1[i] = response_plaintext_bytes[MID + i];
     }
 
-    let nivc0 =
-        NivcState { data: response_plaintext_0, line_digests, polynomial_input };
+    let nivc0 = NivcState { data: response_plaintext_0, line_digests, polynomial_input };
 
     let machine_state_0 = Parser::default();
     let step_in_0 = [
@@ -207,8 +204,7 @@ fn test_http_verification_split_two_headers() {
     };
     let step_in_1 = step_out_0;
 
-    let nivc1 =
-        NivcState { data: response_plaintext_1, line_digests, polynomial_input };
+    let nivc1 = NivcState { data: response_plaintext_1, line_digests, polynomial_input };
     let step_out_1 = nivc1.verify(step_in_1, machine_state_1);
 
     let output_difference = body_digest - response_plaintext_digest;
