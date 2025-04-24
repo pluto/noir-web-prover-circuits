@@ -2,7 +2,7 @@ use dep::std::hash::poseidon::bn254::hash_2;
 use crate::data::{http_data, http_data_long_header};
 use crate::utils::{polynomial_digest, hash_accumulate};
 use crate::parser::Parser;
-use crate::http_verification::HttpVerification;
+use crate::nivc::NivcState;
 
 global NUM_HEADERS: u32 = 10;
 
@@ -45,8 +45,8 @@ fn test_http_verification_no_header() {
         1,
     );
 
-    let http_verification =
-        HttpVerification { data: response_plaintext_bytes, line_digests, polynomial_input };
+    let nivc =
+        NivcState { data: response_plaintext_bytes, line_digests, polynomial_input };
 
     let machine_state = Parser::default();
 
@@ -66,7 +66,7 @@ fn test_http_verification_no_header() {
         0,
     ];
 
-    let step_out = http_verification.verify(step_in, machine_state);
+    let step_out = nivc.verify(step_in, machine_state);
     let output_difference = body_digest - response_plaintext_digest;
 
     assert_eq(step_out[0], output_difference);
@@ -104,8 +104,8 @@ fn test_http_verification_one_header() {
         1,
     );
 
-    let http_verification =
-        HttpVerification { data: response_plaintext_bytes, line_digests, polynomial_input };
+    let nivc =
+        NivcState { data: response_plaintext_bytes, line_digests, polynomial_input };
 
     let machine_state = Parser::default();
     let step_in = [
@@ -122,7 +122,7 @@ fn test_http_verification_one_header() {
         0,
     ];
 
-    let step_out = http_verification.verify(step_in, machine_state);
+    let step_out = nivc.verify(step_in, machine_state);
 
     let output_difference = body_digest - response_plaintext_digest;
 
@@ -173,8 +173,8 @@ fn test_http_verification_split_two_headers() {
         response_plaintext_1[i] = response_plaintext_bytes[MID + i];
     }
 
-    let http_verification_0 =
-        HttpVerification { data: response_plaintext_0, line_digests, polynomial_input };
+    let nivc0 =
+        NivcState { data: response_plaintext_0, line_digests, polynomial_input };
 
     let machine_state_0 = Parser::default();
     let step_in_0 = [
@@ -191,7 +191,7 @@ fn test_http_verification_split_two_headers() {
         0,
     ];
 
-    let step_out_0 = http_verification_0.verify(step_in_0, machine_state_0);
+    let step_out_0 = nivc0.verify(step_in_0, machine_state_0);
     assert_eq(step_out_0[2], polynomial_input.pow_32(response_plaintext_0.len() as Field));
     assert_eq(step_out_0[5], 0);
 
@@ -207,9 +207,9 @@ fn test_http_verification_split_two_headers() {
     };
     let step_in_1 = step_out_0;
 
-    let http_verification_1 =
-        HttpVerification { data: response_plaintext_1, line_digests, polynomial_input };
-    let step_out_1 = http_verification_1.verify(step_in_1, machine_state_1);
+    let nivc1 =
+        NivcState { data: response_plaintext_1, line_digests, polynomial_input };
+    let step_out_1 = nivc1.verify(step_in_1, machine_state_1);
 
     let output_difference = body_digest - response_plaintext_digest;
 
@@ -256,7 +256,7 @@ fn test_http_verification_split_long_headers() {
         response_1[i] = response[MID_LONG_HEADER + i];
     }
 
-    let http_verification_0 = HttpVerification { data: response_0, line_digests, polynomial_input };
+    let nivc0 = NivcState { data: response_0, line_digests, polynomial_input };
 
     let machine_state_0 = Parser::default();
     let step_in_0 = [
@@ -273,11 +273,11 @@ fn test_http_verification_split_long_headers() {
         0,
     ];
 
-    let step_out_0 = http_verification_0.verify(step_in_0, machine_state_0);
+    let step_out_0 = nivc0.verify(step_in_0, machine_state_0);
     assert_eq(step_out_0[2], polynomial_input.pow_32(response_0.len() as Field));
     assert_eq(step_out_0[5], 0);
 
-    // last machins_state of http_verification_0.verify
+    // last machins_state of nivc0.verify
     let machine_state_1 = Parser {
         parsing_start: 0,
         parsing_header: 3,
@@ -290,8 +290,8 @@ fn test_http_verification_split_long_headers() {
     };
     let step_in_1 = step_out_0;
 
-    let http_verification_1 = HttpVerification { data: response_1, line_digests, polynomial_input };
-    let step_out_1 = http_verification_1.verify(step_in_1, machine_state_1);
+    let nivc1 = NivcState { data: response_1, line_digests, polynomial_input };
+    let step_out_1 = nivc1.verify(step_in_1, machine_state_1);
 
     let output_difference = body_digest - response_digest;
 

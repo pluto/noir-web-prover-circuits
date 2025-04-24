@@ -2,13 +2,13 @@ use crate::parser::Parser;
 use crate::utils::{polynomial_digest, hash_accumulate};
 
 // todo: should data be passed as zeroed
-pub struct HttpVerification<let N: u32, let NUM_DIGESTS: u32> {
+pub struct NivcState<let N: u32, let NUM_DIGESTS: u32> {
     data: [u8; N],
     line_digests: [Field; NUM_DIGESTS],
     polynomial_input: Field,
 }
 
-impl<let N: u32, let NUM_DIGESTS: u32> HttpVerification<N, NUM_DIGESTS> {
+impl<let N: u32, let NUM_DIGESTS: u32> NivcState<N, NUM_DIGESTS> {
     fn verify<let PUBLIC_IO_LENGTH: u32>(
         self,
         step_in: [Field; PUBLIC_IO_LENGTH],
