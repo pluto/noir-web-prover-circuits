@@ -1,12 +1,11 @@
 // Helper function to simulate 32-bit addition with overflow
 fn add32(a: u32, b: u32) -> u32 {
-    let sum = (a as u64 + b as u64) & 0xFFFFFFFF;
-    sum as u32
+    std::wrapping_add(a, b)
 }
 
 // Helper function to simulate 32-bit rotation
 fn rotate_left32(x: u32, n: u8) -> u32 {
-    ((x << n) | (x >> (32 - n))) & 0xFFFFFFFF
+    ((x << n) | (x >> (32 - n)))
 }
 
 // ChaCha20 Quarter Round operation
@@ -118,13 +117,6 @@ fn little_to_big_endian(word: u32) -> u32 {
         | ((word & 0xFF000000) >> 24)
 }
 
-fn big_to_little_endian(word: u32) -> u32 {
-    ((word & 0xFF) << 24)
-        | ((word & 0xFF00) << 8)
-        | ((word & 0xFF0000) >> 8)
-        | ((word & 0xFF000000) >> 24)
-}
-
 fn get_byte_from_word(word: u32, byte_idx: u8) -> u8 {
     // ex) word = [00000001, 00000010, 00000011, 00000100]
     // byte_idx = 0 -> 00000001
@@ -176,14 +168,13 @@ impl<let DATA_BYTES: u32, let PUBLIC_IO_LENGTH: u32> NivcState<DATA_BYTES, PUBLI
                     zeroed_plaintext[byte_idx] = word[j];
                 }
             }
-            // concat 4 u8 into 1 u32
-            let concatenated = (word[0] as u32) << 24
-                | (word[1] as u32) << 16
-                | (word[2] as u32) << 8
-                | (word[3] as u32);
-            let le_word = big_to_little_endian(concatenated);
+            // concat 4 u8 into 1 u32, with little endian
+            let concatenated = (word[3] as u32) << 24
+                | (word[2] as u32) << 16
+                | (word[1] as u32) << 8
+                | (word[0] as u32);
 
-            plaintext_bits[i] = le_word;
+            plaintext_bits[i] = concatenated;
         }
 
         // Step 1: Generate ChaCha20 blocks and store in ciphertext array

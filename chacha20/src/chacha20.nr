@@ -1,12 +1,11 @@
 // Helper function to simulate 32-bit addition with overflow
 fn add32(a: u32, b: u32) -> u32 {
-    let sum = (a as u64 + b as u64) & 0xFFFFFFFF;
-    sum as u32
+    std::wrapping_add(a, b)
 }
 
 // Helper function to simulate 32-bit rotation
 fn rotate_left32(x: u32, n: u8) -> u32 {
-    ((x << n) | (x >> (32 - n))) & 0xFFFFFFFF
+    ((x << n) | (x >> (32 - n)))
 }
 
 // ChaCha20 Quarter Round operation
