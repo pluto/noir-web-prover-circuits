@@ -275,9 +275,7 @@ use std::hash::{self, poseidon::bn254::hash_2};
 
 pub fn data_hasher<let DATA_BYTES: u32>(data: [u8; DATA_BYTES], seed: Field) -> Field {
     // ceil(DATA_BYTES/16) == (DATA_BYTES + 15) / 16 + 1
-    let mut hashes: [Field; (DATA_BYTES + 15) / 16 + 1] =
-        [Field::default(); (DATA_BYTES + 15) / 16 + 1];
-    hashes[0] = seed;
+    let mut hash: Field = seed;
 
     // Process data in chunks of 16 bytes
     for i in 0..((DATA_BYTES + 15) / 16) {
@@ -305,13 +303,12 @@ pub fn data_hasher<let DATA_BYTES: u32>(data: [u8; DATA_BYTES], seed: Field) -> 
 
         // Compute next hash
         if is_padded_chunk == 16 {
-            // If all bytes are padding, use previous hash
-            hashes[i + 1] = hashes[i];
+            // If all bytes are padding, use previous hash - do nothing
         } else {
             // Use Poseidon hash function
-            hashes[i + 1] = hash_2([hashes[i], packed_input]);
+            hash = hash_2([hash, packed_input]);
         }
     }
 
-    hashes[hashes.len() - 1]
+    hash
 }
