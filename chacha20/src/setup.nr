@@ -72,8 +72,8 @@ pub fn polynomial_digest<let N: u32>(
     digest
 }
 
-// Structure for NIVC state
-pub struct NivcState<let DATA_BYTES: u32, let PUBLIC_IO_LENGTH: u32> {
+// Structure for Setup state
+pub struct SetupState<let DATA_BYTES: u32, let PUBLIC_IO_LENGTH: u32> {
     key: [u32; 8],
     nonce: [u32; 3],
     counter: u32,
@@ -81,7 +81,7 @@ pub struct NivcState<let DATA_BYTES: u32, let PUBLIC_IO_LENGTH: u32> {
     ciphertext_digest: Field,
 }
 
-impl<let DATA_BYTES: u32, let PUBLIC_IO_LENGTH: u32> NivcState<DATA_BYTES, PUBLIC_IO_LENGTH> {
+impl<let DATA_BYTES: u32, let PUBLIC_IO_LENGTH: u32> SetupState<DATA_BYTES, PUBLIC_IO_LENGTH> {
     fn verify(self, step_in: [Field; PUBLIC_IO_LENGTH]) -> [Field; PUBLIC_IO_LENGTH] {
         let mut step_out = step_in;
         // let mut ciphertext_digest_pow = [Field::default(); DATA_BYTES];

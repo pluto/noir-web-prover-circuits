@@ -1,6 +1,6 @@
 use crate::chacha20::{chacha20_block, quarter_round};
-use crate::nivc::{data_hasher, NivcState, polynomial_digest};
-use crate::nivc::PADDING_VALUE;
+use crate::setup::{data_hasher, polynomial_digest, SetupState};
+use crate::setup::PADDING_VALUE;
 
 #[test]
 fn test_chacha20_quarter_round_example() {
@@ -53,7 +53,7 @@ fn test_chacha20_block_function() {
 }
 
 #[test]
-fn test_chacha20_nivc_16_block() {
+fn test_chacha20_setup_16_block() {
     // Test case from RCF https://www.rfc-editor.org/rfc/rfc7539.html#section-2.4.2
     let key = [
         0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c, 0x13121110, 0x17161514, 0x1b1a1918,
@@ -83,15 +83,15 @@ fn test_chacha20_nivc_16_block() {
 
     let ciphertext_digest = data_hasher(expected_ciphertext, Field::default());
 
-    // Initialize NIVC state
-    let nivc = NivcState { key, nonce, counter, plaintext, ciphertext_digest };
+    // Initialize Setup state
+    let setup = SetupState { key, nonce, counter, plaintext, ciphertext_digest };
 
     // Initialize step_in
     let mut step_in: [Field; 11] = [Field::default(); 11];
     step_in[1] = Field::from(1); // ciphertext_digest_pow initializes as 1
 
     // Run verification
-    let step_out: [Field; 11] = nivc.verify(step_in);
+    let step_out: [Field; 11] = setup.verify(step_in);
 
     // Calculate expected output
     let plaintext_digest =
@@ -104,7 +104,7 @@ fn test_chacha20_nivc_16_block() {
 }
 
 #[test]
-fn test_chacha20_nivc_padded_text() {
+fn test_chacha20_setup_padded_text() {
     // Test case from RCF https://www.rfc-editor.org/rfc/rfc7539.html#section-2.4.2
     let key = [
         0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c, 0x13121110, 0x17161514, 0x1b1a1918,
@@ -142,15 +142,16 @@ fn test_chacha20_nivc_padded_text() {
     }
     let ciphertext_digest = data_hasher(expected_ciphertext, Field::from(0));
 
-    // Initialize NIVC state
-    let nivc = NivcState { key, nonce, counter, plaintext: paddedPlaintextByte, ciphertext_digest };
+    // Initialize Setup state
+    let setup =
+        SetupState { key, nonce, counter, plaintext: paddedPlaintextByte, ciphertext_digest };
 
     // Initialize step_in
     let mut step_in: [Field; 11] = [Field::default(); 11];
     step_in[1] = Field::from(1); // ciphertext_digest_pow initializes as 1
 
     // Run verification
-    let step_out: [Field; 11] = nivc.verify(step_in);
+    let step_out: [Field; 11] = setup.verify(step_in);
 
     // Calculate expected output
     let plaintext_digest =
@@ -164,7 +165,7 @@ fn test_chacha20_nivc_padded_text() {
 }
 
 #[test]
-fn test_chacha20_nivc_padded_text_split() {
+fn test_chacha20_setup_padded_text_split() {
     // Test case from RCF https://www.rfc-editor.org/rfc/rfc7539.html#section-2.4.2
     let key = [
         0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c, 0x13121110, 0x17161514, 0x1b1a1918,
@@ -214,16 +215,16 @@ fn test_chacha20_nivc_padded_text_split() {
     let mut step_in: [Field; 11] = [Field::default(); 11];
     step_in[1] = Field::from(1); // ciphertext_digest_pow initializes as 1
 
-    // NIVC1
-    let mut nivc = NivcState { key, nonce, counter, plaintext: plaintext_1, ciphertext_digest };
-    let step_out: [Field; 11] = nivc.verify(step_in);
+    // Setup1
+    let mut setup = SetupState { key, nonce, counter, plaintext: plaintext_1, ciphertext_digest };
+    let step_out: [Field; 11] = setup.verify(step_in);
 
-    // NIVC2
-    nivc =
-        NivcState { key, nonce, counter: counter + 1, plaintext: plaintext_2, ciphertext_digest };
+    // Setup2
+    setup =
+        SetupState { key, nonce, counter: counter + 1, plaintext: plaintext_2, ciphertext_digest };
 
     step_in = step_out;
-    let step_out_2: [Field; 11] = nivc.verify(step_in);
+    let step_out_2: [Field; 11] = setup.verify(step_in);
 
     // Calculate expected output
     let plaintext_digest =
